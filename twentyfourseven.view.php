@@ -39,6 +39,22 @@
 
         /*********** Place your code below:  ************/
 
+        $this->page->begin_block( "twentyfourseven_twentyfourseven", "square" );
+        
+        $hor_scale = 91.3;
+        $ver_scale = 122.4;
+        for( $x=1; $x<=7; $x++ )
+        {
+            for( $y=1; $y<=7; $y++ )
+            {
+                $this->page->insert_block( "square", array(
+                    'X' => $x,
+                    'Y' => $y,
+                    'LEFT' => round( ($x-1)*$hor_scale+59 ),
+                    'TOP' => round( ($y-1)*$ver_scale+59 )
+                ) );
+            }        
+        }
 
         /*
         

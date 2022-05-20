@@ -26,18 +26,19 @@
 -->
 
 
-This is your game interface. You can edit this HTML in your ".tpl" file.
+<div id="board">
+    <!-- BEGIN square -->
+        <div id="square_{X}_{Y}" class="square" style="left: {LEFT}px; top: {TOP}px;"></div>
+    <!-- END square -->
+    <div id="tiles">
+    </div>
+</div>
 
 
 <script type="text/javascript">
 
 // Javascript HTML templates
-
-/*
-// Example:
-var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_ID}"></div>';
-
-*/
+var jstpl_tile='<div class="tile tile_${value}" id="tile_${x_y}"></div>';
 
 </script>  
 

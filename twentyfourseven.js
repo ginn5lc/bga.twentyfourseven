@@ -57,7 +57,6 @@ function (dojo, declare) {
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
-            
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -150,15 +149,18 @@ function (dojo, declare) {
 
         ///////////////////////////////////////////////////
         //// Utility methods
-        
-        /*
-        
-            Here, you can defines some utility methods that you can use everywhere in your javascript
-            script.
-        
-        */
 
-
+        addTileOnBoard: function( x, y, value, player )
+        {
+            dojo.place( this.format_block( 'jstpl_tile', {
+                x_y: x+'_'+y,
+                value: value
+            } ) , 'tiles' );
+            
+            this.placeOnObject( 'tile_'+x+'_'+y, 'overall_player_board_'+player );
+            this.slideToObject( 'tile_'+x+'_'+y, 'square_'+x+'_'+y ).play();
+        },
+        
         ///////////////////////////////////////////////////
         //// Player's action
         

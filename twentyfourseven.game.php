@@ -39,7 +39,11 @@ class TwentyFourSeven extends Table
             //    "my_first_game_variant" => 100,
             //    "my_second_game_variant" => 101,
             //      ...
-        ) );        
+        ) );
+
+	    $this->tiles = self::getNew( "module.common.deck" );
+	    $this->tiles->init( "tile" );
+
 	}
 	
     protected function getGameName( )
@@ -88,7 +92,50 @@ class TwentyFourSeven extends Table
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // TODO: setup the initial game situation here
-       
+
+        // Create tiles
+        $tiles = array();
+        for ($value = 1; $value <= 10; $value ++) {
+            $tiles[] = array('type' => 'tile', 'type_arg' => $value, 'nbr' => 4);
+        }
+        $this->tiles->createCards( $tiles, 'deck' );
+
+        // Shuffle tiles
+        $this->tiles->shuffle('deck');
+
+        // Draw tile for center of board
+        $center_tile = $this->tiles->pickCardForLocation('deck', 'board');
+
+        // Draw and discard 3 tiles
+        $this->tiles->pickCardsForLocation(3, 'deck', 'discard');
+
+        // Draw player hands
+        $players = self::loadPlayersBasicInfos();
+        $player_count = count($players);
+        $hand_size = ($player_count == 2) ? 6 : 5;
+
+        foreach ( $players as $player_id => $player ) {
+            $this->tiles->pickCards($hand_size, 'deck', $player_id);
+        }
+
+        /*
+        // Init the board
+        $sql = "INSERT INTO board (board_x,board_y,tile_value) VALUES ";
+        $sql_values = array();
+        for( $x=1; $x<=7; $x++ )
+        {
+            for( $y=1; $y<=7; $y++ )
+            {
+                $tile_value = "1";
+//                if( $x==4 && $y==4 )  // Center space
+//                    $tile_value = $center_tile['type_arg'];
+                    
+                $sql_values[] = "('$x','$y',$tile_value)";
+            }
+        }
+        $sql .= implode( ',', $sql_values );
+        self::DbQuery( $sql );
+        */
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
