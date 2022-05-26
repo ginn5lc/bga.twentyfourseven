@@ -25,20 +25,22 @@
     Please REMOVE this comment before publishing your game on BGA
 -->
 
-
 <div id="board">
-    <!-- BEGIN square -->
-        <div id="square_{X}_{Y}" class="square" style="left: {LEFT}px; top: {TOP}px;"></div>
-    <!-- END square -->
-    <div id="tiles">
+    <!-- BEGIN space -->
+        <div id="space_{X}_{Y}" class="space" style="left: {LEFT}px; top: {TOP}px;"></div>
+    <!-- END space -->
+    <div id="pieces">
     </div>
 </div>
 
+<div id="myhand">
+</div>
 
 <script type="text/javascript">
 
 // Javascript HTML templates
 var jstpl_tile='<div class="tile tile_${value}" id="tile_${x_y}"></div>';
+var jstpl_stone='<div class="stone" id="stone_${x_y}"></div>';
 
 </script>  
 

@@ -91,8 +91,6 @@ class TwentyFourSeven extends Table
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
-        // TODO: setup the initial game situation here
-
         // Create tiles
         $tiles = array();
         for ($value = 1; $value <= 10; $value ++) {
@@ -118,24 +116,22 @@ class TwentyFourSeven extends Table
             $this->tiles->pickCards($hand_size, 'deck', $player_id);
         }
 
-        /*
         // Init the board
-        $sql = "INSERT INTO board (board_x,board_y,tile_value) VALUES ";
+        $sql = "INSERT INTO board (board_x,board_y,board_value) VALUES ";
         $sql_values = array();
         for( $x=1; $x<=7; $x++ )
         {
             for( $y=1; $y<=7; $y++ )
             {
-                $tile_value = "1";
-//                if( $x==4 && $y==4 )  // Center space
-//                    $tile_value = $center_tile['type_arg'];
+                $board_value = "NULL";
+                if( $x==4 && $y==4 )  // Center space
+                    $board_value = $center_tile['type_arg'];
                     
-                $sql_values[] = "('$x','$y',$tile_value)";
+                $sql_values[] = "('$x','$y',$board_value)";
             }
         }
         $sql .= implode( ',', $sql_values );
         self::DbQuery( $sql );
-        */
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
@@ -163,8 +159,15 @@ class TwentyFourSeven extends Table
         $sql = "SELECT player_id id, player_score score FROM player ";
         $result['players'] = self::getCollectionFromDb( $sql );
   
-        // TODO: Gather all information about current game situation (visible by player $current_player_id).
-  
+        // Tiles in player hand
+        $result['hand'] = $this->tiles->getCardsInLocation( 'hand', $current_player_id );
+        // Pieces (tiles and time out stones) on the board
+        $result['board'] = self::getObjectListFromDB( "SELECT board_x x, board_y y, board_value value
+                                                       FROM board
+                                                       WHERE board_value IS NOT NULL" );
+        // Playable spaces on the board
+        $result['spaces'] = self::getPlayableSpaces();;
+
         return $result;
     }
 
@@ -190,10 +193,25 @@ class TwentyFourSeven extends Table
 //////////// Utility functions
 ////////////    
 
-    /*
-        In this space, you can put any utility methods useful for your game logic
-    */
+    // Get the complete board with a double associative array
+    function getBoard()
+    {
+        return self::getDoubleKeyCollectionFromDB( "SELECT board_x x, board_y y, board_value value FROM board", true );
+    }
 
+    /*
+     * Get the list of empty spaces adjacent to tiles
+     */
+    function getPlayableSpaces()
+    {
+        return self::getDoubleKeyCollectionFromDB( "SELECT E.board_x x, E.board_y y, E.board_value value 
+                                                    FROM board E 
+                                                    JOIN board A ON 
+                                                        E.board_value IS NULL AND 
+                                                        A.board_value IS NOT NULL AND A.board_value > 0 AND 
+                                                        A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND
+                                                        A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1)", true );
+    }
 
 
 //////////////////////////////////////////////////////////////////////////////

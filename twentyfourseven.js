@@ -18,7 +18,8 @@
 define([
     "dojo","dojo/_base/declare",
     "ebg/core/gamegui",
-    "ebg/counter"
+    "ebg/counter",
+    "ebg/stock"
 ],
 function (dojo, declare) {
     return declare("bgagame.twentyfourseven", ebg.core.gamegui, {
@@ -28,7 +29,8 @@ function (dojo, declare) {
             // Here, you can init the global variables of your user interface
             // Example:
             // this.myGlobalValue = 0;
-
+            this.tilewidth = 75;
+            this.tileheight = 105;
         },
         
         /*
@@ -57,10 +59,55 @@ function (dojo, declare) {
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
+           
+            // Player hand
+            this.playerHand = new ebg.stock();
+            this.playerHand.create(this, $('myhand'), this.tilewidth, this.tileheight);
+            this.playerHand.image_items_per_row = 5;
+
+//            dojo.connect( this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged' );
+
+            // Create cards types:
+            for (var value = 1; value <= 10; value++) {
+                // Build card type id
+                this.playerHand.addItemType(value, value, g_gamethemeurl + 'img/tiles.png', (value - 1));
+            }
+
+            // Cards in player's hand
+            for ( var i in this.gamedatas.hand) {
+                var card = this.gamedatas.hand[i];
+                this.playerHand.addToStockWithId(card.type_arg, card.id);
+            }
+
+            for( var i in gamedatas.board )
+            {
+                var space = gamedatas.board[i];
+                
+                if( space.value !== null )
+                {
+                    this.addPieceOnBoard( space.x, space.y, space.value );
+                }
+            }
+
+            /* Testing tile placement/alignment/sprite
+            this.addPieceOnBoard( 1, 1, 1 );
+            this.addPieceOnBoard( 1, 2, 2 );
+            this.addPieceOnBoard( 1, 3, 3 );
+            this.addPieceOnBoard( 1, 4, 4 );
+            this.addPieceOnBoard( 1, 5, 5 );
+            this.addPieceOnBoard( 2, 1, 6 );
+            this.addPieceOnBoard( 2, 2, 7 );
+            this.addPieceOnBoard( 2, 3, 8 );
+            this.addPieceOnBoard( 2, 4, 9 );
+            this.addPieceOnBoard( 2, 5, 10 );
+            */
+
+//            dojo.query( '.space' ).connect( 'onclick', this, 'onPlayDisc' );
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
+            console.log( gamedatas );
             console.log( "Ending game setup" );
         },
        
@@ -150,15 +197,28 @@ function (dojo, declare) {
         ///////////////////////////////////////////////////
         //// Utility methods
 
-        addTileOnBoard: function( x, y, value, player )
+        addPieceOnBoard: function( x, y, value, player )
         {
-            dojo.place( this.format_block( 'jstpl_tile', {
-                x_y: x+'_'+y,
-                value: value
-            } ) , 'tiles' );
-            
-            this.placeOnObject( 'tile_'+x+'_'+y, 'overall_player_board_'+player );
-            this.slideToObject( 'tile_'+x+'_'+y, 'square_'+x+'_'+y ).play();
+            if (value > 0) { // Tile
+                dojo.place( this.format_block( 'jstpl_tile', {
+                    x_y: x+'_'+y,
+                    value: value
+                } ) , 'pieces' );
+                
+                if (player !== undefined) {
+                    this.placeOnObject( 'tile_'+x+'_'+y, 'overall_player_board_'+player );
+                } else {
+                    this.placeOnObject( 'tile_'+x+'_'+y, 'board' );
+                }
+                this.slideToObject( 'tile_'+x+'_'+y, 'space_'+x+'_'+y ).play();
+            } else { // Time out stone
+                dojo.place( this.format_block( 'jstpl_stone', {
+                    x_y: x+'_'+y
+                } ) , 'pieces' );
+                
+                this.placeOnObject( 'stone_'+x+'_'+y, 'board' );
+                this.slideToObject( 'stone_'+x+'_'+y, 'space_'+x+'_'+y ).play();
+            }
         },
         
         ///////////////////////////////////////////////////

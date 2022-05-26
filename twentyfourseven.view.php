@@ -39,7 +39,7 @@
 
         /*********** Place your code below:  ************/
 
-        $this->page->begin_block( "twentyfourseven_twentyfourseven", "square" );
+        $this->page->begin_block( "twentyfourseven_twentyfourseven", "space" );
         
         $hor_scale = 91.3;
         $ver_scale = 122.4;
@@ -47,7 +47,7 @@
         {
             for( $y=1; $y<=7; $y++ )
             {
-                $this->page->insert_block( "square", array(
+                $this->page->insert_block( "space", array(
                     'X' => $x,
                     'Y' => $y,
                     'LEFT' => round( ($x-1)*$hor_scale+59 ),

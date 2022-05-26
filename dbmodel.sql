@@ -34,17 +34,17 @@
 -- ALTER TABLE `player` ADD `player_my_custom_field` INT UNSIGNED NOT NULL DEFAULT '0';
 
 CREATE TABLE IF NOT EXISTS `board` (
-  `board_x` smallint(5) unsigned NOT NULL,
-  `board_y` smallint(5) unsigned NOT NULL,
-  `tile_value` smallint(5) unsigned DEFAULT NULL,
+  `board_x` SMALLINT(5) NOT NULL,
+  `board_y` SMALLINT(5) NOT NULL,
+  `board_value` SMALLINT(5) DEFAULT NULL,
   PRIMARY KEY (`board_x`,`board_y`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `tile` (
-  `card_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `card_type` varchar(16) NOT NULL,
-  `card_type_arg` int(11) NOT NULL,
-  `card_location` varchar(16) NOT NULL,
-  `card_location_arg` int(11) NOT NULL,
+  `card_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `card_type` VARCHAR(16) NOT NULL,
+  `card_type_arg` INT(11) NOT NULL,
+  `card_location` VARCHAR(16) NOT NULL,
+  `card_location_arg` INT(11) NOT NULL,
   PRIMARY KEY (`card_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
