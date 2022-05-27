@@ -89,6 +89,7 @@ function (dojo, declare) {
                 }
             }
 
+            // TODO: remove
             /* Testing tile placement/alignment/sprite
             this.addPieceOnBoard( 1, 1, 1 );
             this.addPieceOnBoard( 1, 2, 2 );
@@ -101,13 +102,18 @@ function (dojo, declare) {
             this.addPieceOnBoard( 2, 4, 9 );
             this.addPieceOnBoard( 2, 5, 10 );
             */
+            // TODO: remove
 
 //            dojo.query( '.space' ).connect( 'onclick', this, 'onPlayDisc' );
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
+            // TODO: remove
+            console.log( "GAMEDATAS" );
             console.log( gamedatas );
+            // TODO: remove
+
             console.log( "Ending game setup" );
         },
        

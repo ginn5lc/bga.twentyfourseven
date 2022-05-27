@@ -166,7 +166,12 @@ class TwentyFourSeven extends Table
                                                        FROM board
                                                        WHERE board_value IS NOT NULL" );
         // Playable spaces on the board
-        $result['spaces'] = self::getPlayableSpaces();;
+        $result['spaces'] = self::getPlayableSpaces();
+
+        // TODO: remove
+        //$result['43lines'] = self::getLinesAtSpace( 4, 3 );
+        //$result['41lines'] = self::getLinesAtSpace( 4, 1 );
+        // TODO: remove
 
         return $result;
     }
@@ -199,6 +204,123 @@ class TwentyFourSeven extends Table
         return self::getDoubleKeyCollectionFromDB( "SELECT board_x x, board_y y, board_value value FROM board", true );
     }
 
+    /*
+     * Get the lines at (x,y). When (x,y) does not contain a tile (value > 0), 
+     * no lines are returned.
+     */
+    function getLinesAtSpace( $x, $y ) {
+        $lines = array();
+        $lines[0] = $this->getHLineAtSpace( $x, $y );
+        $lines[1] = $this->getVLineAtSpace( $x, $y );
+        $lines[2] = $this->getLDLineAtSpace( $x, $y );
+        $lines[3] = $this->getRDLineAtSpace( $x, $y );
+        return $lines;
+    }
+
+    /*
+     * Gets the horizontal line at (x,y). When (x,y) does not contain a tile 
+     * (value > 0), no line is returned.
+     */
+    function getHLineAtSpace( $x, $y ) {
+        self::DbQuery( "SET @x := $x, @y := $y" );
+        return self::getObjectListFromDB( "SELECT B.board_x x, B.board_y y, B.board_value value
+                                            FROM (
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
+                                                FROM board b join (SELECT @exp := 0, @act := 0) c
+                                                WHERE board_y = @y
+                                                ORDER BY board_x, board_y
+                                            ) B 
+                                            JOIN (
+                                                SELECT COUNT(*) tep FROM board WHERE board_x <= @x AND board_y = @y
+                                            ) E 
+                                            JOIN (
+                                                SELECT COUNT(*) tap FROM board WHERE board_x <= @x AND board_y = @y AND board_value > 0
+                                            ) A
+                                            WHERE 
+                                                B.board_value > 0 AND -- Space has a tile
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                            ORDER BY B.board_x, B.board_y " );
+    }
+
+    /*
+     * Gets the vertical line at (x,y). When (x,y) does not contain a tile 
+     * (value > 0), no line is returned.
+     */
+    function getVLineAtSpace( $x, $y ) {
+        self::DbQuery( "SET @x := $x, @y := $y" );
+        return self::getObjectListFromDB( "SELECT B.board_x, B.board_y, B.board_value
+                                            FROM (
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
+                                                FROM board b join (SELECT @exp := 0, @act := 0) c
+                                                WHERE board_x = @x
+                                                ORDER BY board_x, board_y
+                                            ) B 
+                                            JOIN (
+                                                SELECT COUNT(*) tep FROM board WHERE board_x = @x AND board_y <= @y
+                                            ) E 
+                                            JOIN (
+                                                SELECT COUNT(*) tap FROM board WHERE board_x = @x AND board_y <= @y AND board_value > 0
+                                            ) A
+                                            WHERE 
+                                                B.board_value > 0 AND -- Space has a tile
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                            ORDER BY B.board_x, B.board_y " );
+    }
+    
+    /*
+     * Gets the left diagonal (NW->SE) line at (x,y). When (x,y) does not 
+     * contain a tile (value > 0), no line is returned.
+     */
+    function getLDLineAtSpace( $x, $y ) {
+        self::DbQuery( "SET @x := $x, @y := $y" );
+        return self::getObjectListFromDB( "SELECT B.board_x, B.board_y, B.board_value
+                                            FROM (
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
+                                                FROM board b join (SELECT @exp := 0, @act := 0) c
+                                                WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x
+                                                ORDER BY board_x, board_y
+                                            ) B 
+                                            JOIN (
+                                                SELECT COUNT(*) tep FROM board WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x AND board_x <= @x AND board_y <= @y
+                                            ) E 
+                                            JOIN (
+                                                SELECT COUNT(*) tap FROM board WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x AND board_x <= @x AND board_y <= @y AND board_value > 0
+                                            ) A
+                                            WHERE 
+                                                B.board_value > 0 AND -- Space has a tile
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                            ORDER BY B.board_x, B.board_y " );
+    }
+    
+    /*
+     * Gets the right diagonal (SW->NE) line at (x,y). When (x,y) does not 
+     * contain a tile (value > 0), no line is returned.
+     */
+    function getRDLineAtSpace( $x, $y ) {
+        self::DbQuery( "SET @x := $x, @y := $y") ;
+        return self::getObjectListFromDB( "SELECT B.board_x, B.board_y, B.board_value
+                                            FROM (
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
+                                                FROM board b JOIN (SELECT @exp := 0, @act := 0) c
+                                                WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x
+                                                ORDER BY board_x, board_y
+                                            ) B 
+                                            JOIN (
+                                                SELECT COUNT(*) tep FROM board WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x AND board_x <= @x AND board_y >= @y
+                                            ) E 
+                                            JOIN (
+                                                SELECT COUNT(*) tap FROM board WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x AND board_x <= @x AND board_y >= @y AND board_value > 0
+                                            ) A
+                                            WHERE 
+                                                B.board_value > 0 AND -- Space has a tile
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                            ORDER BY B.board_x, B.board_y " );
+    }
+    
     /*
      * Get the list of empty spaces adjacent to tiles
      */
