@@ -55,46 +55,31 @@ $machinestates = array(
     // The initial state. Please do not modify.
     1 => array(
         "name" => "gameSetup",
-        "description" => "",
+        "description" => clienttranslate("Game setup"),
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
+        "transitions" => array( "" => 10 )
     ),
     
     // Note: ID=2 => your first state
 
-    2 => array(
+    10 => array(
     		"name" => "playerTurn",
-    		"description" => clienttranslate('${actplayer} must play a card or pass'),
-    		"descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
+    		"description" => clienttranslate('${actplayer} must play a tile'),
+    		"descriptionmyturn" => clienttranslate('${you} must play a tile'),
     		"type" => "activeplayer",
-    		"possibleactions" => array( "playCard", "pass" ),
-    		"transitions" => array( "playCard" => 2, "pass" => 2 )
+    		"possibleactions" => array( "playTile" ),
+    		"transitions" => array( "playTile" => 11, "zombiePass" => 11 )
     ),
     
-/*
-    Examples:
-    
-    2 => array(
+    11 => array(
         "name" => "nextPlayer",
-        "description" => '',
         "type" => "game",
         "action" => "stNextPlayer",
-        "updateGameProgression" => true,   
-        "transitions" => array( "endGame" => 99, "nextPlayer" => 10 )
+        "updateGameProgression" => true,        
+        "transitions" => array( "nextTurn" => 10, "cantPlay" => 11, "endGame" => 99 )
     ),
-    
-    10 => array(
-        "name" => "playerTurn",
-        "description" => clienttranslate('${actplayer} must play a card or pass'),
-        "descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-        "type" => "activeplayer",
-        "possibleactions" => array( "playCard", "pass" ),
-        "transitions" => array( "playCard" => 2, "pass" => 2 )
-    ), 
 
-*/    
-   
     // Final state.
     // Please do not modify (and do not overload action/args methods).
     99 => array(

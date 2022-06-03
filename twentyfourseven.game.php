@@ -326,13 +326,43 @@ class TwentyFourSeven extends Table
      */
     function getPlayableSpaces()
     {
-        return self::getDoubleKeyCollectionFromDB( "SELECT E.board_x x, E.board_y y, E.board_value value 
-                                                    FROM board E 
-                                                    JOIN board A ON 
-                                                        E.board_value IS NULL AND 
-                                                        A.board_value IS NOT NULL AND A.board_value > 0 AND 
-                                                        A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND
-                                                        A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1)", true );
+        return self::getObjectListFromDB( "SELECT E.board_x x, E.board_y y, E.board_value value 
+                                            FROM board E 
+                                            JOIN board A ON 
+                                                E.board_value IS NULL AND 
+                                                A.board_value IS NOT NULL AND A.board_value > 0 AND 
+                                                A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND
+                                                A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1)" );
+    }
+
+    /*
+     * Get the list of playable tiles for a player
+     */
+    function getPlayableTiles( $player_id )
+    {
+        $result = array();
+
+        // Find the largest tile that can be played on the board
+        // Return the list of tiles in the player's hand less than or equal 
+        // to the largest tile that can be played
+
+        return $result;
+    }
+
+    /*
+     * Determine whether any player has a playable tile
+     */
+    function doesPlayableTileExist() {
+        // Get smallest tile held by players
+        // Get largest tile that can be played on the board
+        //TODO: GET TILE VALUES!!
+        $playerTileValue = 1;
+        $boardTileValue = 1;
+        if ($playerTileValue <= $boardTileValue) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 
@@ -403,23 +433,60 @@ class TwentyFourSeven extends Table
 //////////// Game state actions
 ////////////
 
-    /*
-        Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
-        The action method of state X is called everytime the current game state is set to X.
-    */
-    
-    /*
-    
-    Example for game state "MyGameState":
+    function stNextPlayer() {
+        // Active next player
+        $player_id = self::activeNextPlayer();
 
-    function stMyGameState()
-    {
-        // Do some stuff ...
-        
-        // (very often) go to another gamestate
-        $this->gamestate->nextState( 'some_gamestate_transition' );
-    }    
-    */
+        /*
+         * Playable spaces - Empty spaces adjacent to tiles on the board (value > 0)
+         * are playable. If none exist, the game is over.
+         */
+        $playableSpaces = self::getPlayableSpaces();
+        if( count( $playableSpaces ) == 0 ) {
+            /*
+             * The board has no playable spaces. Game over.
+             */
+            $this->gamestate->nextState( 'endGame' );
+            return ;
+        }
+
+        /*
+         * Playable tiles - Tiles in players hands are playable when every line 
+         * through a playable space will add up to 24 or less after playing the
+         * tile. If all players hands are empty or none of their tiles can be 
+         * played (because they are too large), the game is over.
+         */
+        if( self::doesPlayableTileExist() ) {
+            /*
+             * No player has a tile that can be played on the board or all 
+             * players are out of tiles. Game over.
+             */
+            $this->gamestate->nextState( 'endGame' );
+            return ;
+        }
+
+        /*
+         * Playable tiles by active player - Are any of the tiles in the active 
+         * player's hand playable? 
+         */
+        $playableTiles = self::getPlayableTiles( $player_id );
+        if( count( $playableTiles ) == 0 ) {
+            /*
+             * This player can't play. Since we are here, we know there are 
+             * playable spaces on the board and at least one player has a tile
+             * that can be played. The game is not over but this player cannot 
+             * take a turn.
+             */
+            $this->gamestate->nextState( 'cantPlay' );
+        } else {
+            /*
+             * This player can play. Give them some extra time
+             */
+            self::giveExtraTime( $player_id );
+            $this->gamestate->nextState( 'nextTurn' );
+        }
+
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Zombie
