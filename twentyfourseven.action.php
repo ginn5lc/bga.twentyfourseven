@@ -21,47 +21,30 @@
  *
  */
   
-  
-  class action_twentyfourseven extends APP_GameAction
-  { 
+
+
+  class action_twentyfourseven extends APP_GameAction { 
     // Constructor: please do not modify
-   	public function __default()
-  	{
-  	    if( self::isArg( 'notifwindow') )
-  	    {
-            $this->view = "common_notifwindow";
-  	        $this->viewArgs['table'] = self::getArg( "table", AT_posint, true );
-  	    }
-  	    else
-  	    {
-            $this->view = "twentyfourseven_twentyfourseven";
-            self::trace( "Complete reinitialization of board game" );
-      }
-  	} 
-  	
-  	// TODO: defines your action entry points there
-
-
-    /*
-    
-    Example:
-  	
-    public function myAction()
+    public function __default()
     {
+      if( self::isArg( 'notifwindow') ) {
+        $this->view = "common_notifwindow";
+        $this->viewArgs['table'] = self::getArg( "table", AT_posint, true );
+      } else {
+        $this->view = "twentyfourseven_twentyfourseven";
+        self::trace( "Complete reinitialization of board game" );
+      }
+    } 
+  	
+    // Play Tile: Player played a tile (tileId) on the board (at x, y)
+    public function playTile() {
         self::setAjaxMode();     
-
-        // Retrieve arguments
-        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
-        $arg1 = self::getArg( "myArgument1", AT_posint, true );
-        $arg2 = self::getArg( "myArgument2", AT_posint, true );
-
-        // Then, call the appropriate method in your game logic, like "playCard" or "myAction"
-        $this->game->myAction( $arg1, $arg2 );
-
-        self::ajaxResponse( );
+        $x = self::getArg( "x", AT_posint, true );
+        $y = self::getArg( "y", AT_posint, true );
+        $tileId = self::getArg( "tileId", AT_posint, true );
+        $result = $this->game->playTile( $x, $y, $tileId );
+        self::ajaxResponse();
     }
-    
-    */
 
   }
   

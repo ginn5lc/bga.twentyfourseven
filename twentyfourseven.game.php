@@ -376,30 +376,103 @@ class TwentyFourSeven extends Table
     */
 
     /*
-    
-    Example:
-
-    function playCard( $card_id )
+     * Play the given tile on the given space (x,y)
+     */
+    function playTile( $x, $y, $tileId )
     {
-        // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
-        self::checkAction( 'playCard' ); 
-        
+        /*
+         * Check that this player is active and that this action is possible 
+         * at this moment.
+         */
+        self::checkAction( 'playTile' );
+
+        $board = self::getBoard();
         $player_id = self::getActivePlayerId();
         
-        // Add your game logic to play a card there 
-        ...
-        
-        // Notify all players about the card played
-        self::notifyAllPlayers( "cardPlayed", clienttranslate( '${player_name} plays ${card_name}' ), array(
-            'player_id' => $player_id,
-            'player_name' => self::getActivePlayerName(),
-            'card_name' => $card_name,
-            'card_id' => $card_id
-        ) );
-          
+        /*
+         * Check if the tile is a valid play. The play is valid if:
+         * - The space is empty (null).
+         * - The tile is in the active player's hand.
+         * - The sum of any line passing through the space sums to 24 or less
+         * after playing the tile.
+         */
+        //TODO
+        if( TRUE )
+        {
+            // This move is possible!
+
+            /*
+             * Update the board at (x,y) with the value of the tile 
+             */
+            //TODO
+
+            /*
+             * Change the location of the tile from the player's hand to 
+             * the board.
+             */
+            //TODO
+
+            /*
+             * Mark any playable spaces with time out stones (value = 0) that 
+             * are no longer playable (placing any tile on the space would 
+             * result in a line through the space adding up to more than 24).
+             */
+            //TODO
+
+            /*
+             * Score the space. Get all the lines passing through the space 
+             * (x,y) and tally the score.
+             */
+            //TODO
+
+            /*
+             * Update the player score. Add the total scored from playing the 
+             * tile to the player's score.
+             */
+            //TODO
+
+            /*
+             * Update the statistics for the player. Increase the tallies for 
+             * the player based on what was scored (runs, sets, 24/7s, etc) 
+             * from playing the tile.
+             */
+            //TODO
+
+            /*
+             * Draw a tile and add it to the player's hand.
+             */
+            //TODO
+
+            /*
+             * Notify players of the game progression.
+             */
+            
+            /*
+             * Played tile notification
+             */
+            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} at (${x}, ${y}) and scored ${minutes} minutes' ), array(
+                'player_id' => $player_id,
+                'player_name' => self::getActivePlayerName(),
+                'minutes' => count( $minutes ),
+                'value' => $value
+                'x' => $x,
+                'y' => $y
+            ) );
+
+            /*
+             * New scores notification
+             */
+            $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
+            self::notifyAllPlayers( "newScores", "", array(
+                "scores" => $newScores
+            ) );
+
+            // Go to the next state
+            $this->gamestate->nextState( 'playTile' );
+        } else
+            throw new BgaSystemException( "Impossible move" );
     }
-    
-    */
+
 
     
 //////////////////////////////////////////////////////////////////////////////
