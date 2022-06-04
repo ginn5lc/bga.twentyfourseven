@@ -450,11 +450,11 @@ class TwentyFourSeven extends Table
             /*
              * Played tile notification
              */
-            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} at (${x}, ${y}) and scored ${minutes} minutes' ), array(
+            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on row ${x} and column ${y} and scored ${minutes} minutes' ), array(
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
                 'minutes' => count( $minutes ),
-                'value' => $value
+                'value' => $value,
                 'x' => $x,
                 'y' => $y
             ) );
@@ -485,22 +485,16 @@ class TwentyFourSeven extends Table
         game state.
     */
 
-    /*
-    
-    Example for game state "MyGameState":
-    
-    function argMyGameState()
+    function argPlayerTurn()
     {
-        // Get some values from the current game situation in database...
-    
-        // return values:
+        $current_player_id = self::getCurrentPlayerId();
+
         return array(
-            'variable1' => $value1,
-            'variable2' => $value2,
-            ...
+            'playableSpaces' => self::getPlayableSpaces(),
+            'hand' => $this->tiles->getCardsInLocation( 'hand', $current_player_id )
+
         );
-    }    
-    */
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions

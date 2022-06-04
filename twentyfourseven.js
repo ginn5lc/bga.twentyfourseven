@@ -64,6 +64,7 @@ function (dojo, declare) {
             this.playerHand = new ebg.stock();
             this.playerHand.create(this, $('myhand'), this.tilewidth, this.tileheight);
             this.playerHand.image_items_per_row = 5;
+            this.playerHand.extraClasses = 'playerTile';
 
 //            dojo.connect( this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged' );
 
@@ -73,11 +74,8 @@ function (dojo, declare) {
                 this.playerHand.addItemType(value, value, g_gamethemeurl + 'img/tiles.png', (value - 1));
             }
 
-            // Cards in player's hand
-            for ( var i in this.gamedatas.hand) {
-                var card = this.gamedatas.hand[i];
-                this.playerHand.addToStockWithId(card.type_arg, card.id);
-            }
+            // Update the player's hand
+            this.updatePlayerHand( this.gamedatas.hand );
 
             for( var i in gamedatas.board )
             {
@@ -104,7 +102,7 @@ function (dojo, declare) {
             */
             // TODO: remove
 
-//            dojo.query( '.space' ).connect( 'onclick', this, 'onPlayDisc' );
+            dojo.query( '.space' ).connect( 'ondrop', this, 'onPlayTile' );
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -127,9 +125,15 @@ function (dojo, declare) {
         onEnteringState: function( stateName, args )
         {
             console.log( 'Entering state: '+stateName );
+            //TODO: REMOVE
+            console.log( args );
+            //TODO: REMOVE
             
             switch( stateName )
             {
+                case 'playerTurn':
+                    this.onEnterPlayerTurn( args );
+                    break;
             
             /* Example:
             
@@ -156,7 +160,6 @@ function (dojo, declare) {
             
             switch( stateName )
             {
-            
             /* Example:
             
             case 'myGameState':
@@ -172,6 +175,12 @@ function (dojo, declare) {
                 break;
             }               
         }, 
+
+        onEnterPlayerTurn: function( args )
+        {
+            this.updatePlayableSpaces( args.args.playableSpaces );
+            this.updatePlayerHand( args.args.hand );
+        },
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
         //                        action status bar (ie: the HTML links in the status bar).
@@ -226,7 +235,41 @@ function (dojo, declare) {
                 this.slideToObject( 'stone_'+x+'_'+y, 'space_'+x+'_'+y ).play();
             }
         },
-        
+
+        updatePlayableSpaces: function( playableSpaces )
+        {
+            if( this.isCurrentPlayerActive() )
+            {
+                for( var i in playableSpaces )
+                {
+                    var space = playableSpaces[i];
+                    
+                    // x,y is a playable space
+                    dojo.addClass( 'space_'+space.x+'_'+space.y, 'playableSpace' );
+                }
+
+                this.addTooltipToClass( 'playableSpace', '', _('Play a tile here') );
+            }
+        },
+
+        updatePlayerHand: function( hand )
+        {
+
+            // Remove all tiles from the player's hand
+            this.playerHand.removeAll();
+
+            // Add tiles to the player's hand
+            for ( var i in hand) {
+                var tile = hand[i];
+                this.playerHand.addToStockWithId(tile.type_arg, tile.id);
+            }
+
+            if( this.isCurrentPlayerActive() ) {
+                dojo.query( '.playerTile' ).attr( 'draggable', true );
+                dojo.query( '.playerTile' ).connect( 'ondrag', this, function(){} );
+            }
+        },
+
         ///////////////////////////////////////////////////
         //// Player's action
         
@@ -241,41 +284,41 @@ function (dojo, declare) {
         
         */
         
-        /* Example:
-        
-        onMyMethodToCall1: function( evt )
+        /*
+         * Handle a tile dropped on a space.
+         */
+        onPlayTile: function( evt )
         {
-            console.log( 'onMyMethodToCall1' );
-            
-            // Preventing default browser reaction
+            // Stop this event propagation
             dojo.stopEvent( evt );
 
-            // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if( ! this.checkAction( 'myAction' ) )
-            {   return; }
+            // Get the dropped space X and Y
+            // Note: space id format is "space_X_Y"
+            var coords = evt.currentTarget.id.split('_');
+            var x = coords[1];
+            var y = coords[2];
+            var tileId = 1; //TODO: update to get tileId from draggable!
 
-            this.ajaxcall( "/twentyfourseven/twentyfourseven/myAction.html", { 
-                                                                    lock: true, 
-                                                                    myArgument1: arg1, 
-                                                                    myArgument2: arg2,
-                                                                    ...
-                                                                 }, 
-                         this, function( result ) {
-                            
-                            // What to do after the server call if it succeeded
-                            // (most of the time: nothing)
-                            
-                         }, function( is_error) {
+            if( ! dojo.hasClass( 'space_'+x+'_'+y, 'playableSpace' ) )
+            {
+                // This is not a possible move => the drop does nothing
+                return ;
+            }
+            
+            if( this.checkAction( 'playTile' ) )    // Check that this action is possible at this moment
+            {
+                // Get the id of the dropped tile
+                var tileId = evt.dataTransfer.getData("text");
 
-                            // What to do after the server call in anyway (success or failure)
-                            // (most of the time: nothing)
-
-                         } );        
+                // Tell the server to process the played tile
+                this.ajaxcall( "/twentyfourseven/twentyfourseven/playTile.html", {
+                    x:x,
+                    y:y,
+                    tileId:tileId
+                }, this, function( result ) {} );
+            }            
         },        
-        
-        */
-
-        
+            
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
 
@@ -292,34 +335,34 @@ function (dojo, declare) {
         {
             console.log( 'notifications subscriptions setup' );
             
-            // TODO: here, associate your game notifications with local methods
-            
-            // Example 1: standard notification handling
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            
-            // Example 2: standard notification handling + tell the user interface to wait
-            //            during 3 seconds after calling the method in order to let the players
-            //            see what is happening in the game.
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
-            // 
+            dojo.subscribe( 'playTile', this, "notif_playTile" );
+            this.notifqueue.setSynchronous( 'playTile', 500 );
+            dojo.subscribe( 'newScores', this, "notif_newScores" );
+            this.notifqueue.setSynchronous( 'newScores', 500 );
         },  
         
-        // TODO: from this point and below, you can write your game notifications handling methods
-        
         /*
-        Example:
-        
-        notif_cardPlayed: function( notif )
+         * Handle the play tile notification.
+         */
+        notif_playTile: function( notif )
         {
-            console.log( 'notif_cardPlayed' );
-            console.log( notif );
-            
-            // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
-            
-            // TODO: play the card in the user interface.
-        },    
+            // Remove current playable spaces (makes the board more clear)
+            dojo.query( '.playableSpace' ).removeClass( 'playableSpace' );        
         
-        */
+            this.addPieceOnBoard( notif.args.x, notif.args.y, notif.args.value, notif.args.player_id );
+        },
+
+        /*
+         * Handle the new scores notification.
+         */
+        notif_newScores: function( notif )
+        {
+            for( var player_id in notif.args.scores )
+            {
+                var newScore = notif.args.scores[ player_id ];
+                this.scoreCtrl[ player_id ].toValue( newScore );
+            }
+        },
+        
    });             
 });
