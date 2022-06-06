@@ -65,6 +65,7 @@ function (dojo, declare) {
             this.playerHand.create(this, $('myhand'), this.tilewidth, this.tileheight);
             this.playerHand.image_items_per_row = 5;
             this.playerHand.extraClasses = 'playerTile';
+            this.playerHand.setSelectionMode( 1 );
 
 //            dojo.connect( this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged' );
 
@@ -75,7 +76,10 @@ function (dojo, declare) {
             }
 
             // Update the player's hand
-            this.updatePlayerHand( this.gamedatas.hand );
+            for ( var i in this.gamedatas.hand) {
+                var tile = this.gamedatas.hand[i];
+                this.playerHand.addToStockWithId(tile.type_arg, tile.id);
+            }
 
             for( var i in gamedatas.board )
             {
@@ -102,8 +106,6 @@ function (dojo, declare) {
             */
             // TODO: remove
 
-            dojo.query( '.space' ).connect( 'ondrop', this, 'onPlayTile' );
- 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
@@ -179,7 +181,7 @@ function (dojo, declare) {
         onEnterPlayerTurn: function( args )
         {
             this.updatePlayableSpaces( args.args.playableSpaces );
-            this.updatePlayerHand( args.args.hand );
+//            this.updatePlayerHand( args.args.hand );
         },
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
@@ -248,25 +250,22 @@ function (dojo, declare) {
                     dojo.addClass( 'space_'+space.x+'_'+space.y, 'playableSpace' );
                 }
 
+                dojo.query( '.playableSpace' ).connect( 'onclick', this, 'onPlayTile' );
+
                 this.addTooltipToClass( 'playableSpace', '', _('Play a tile here') );
             }
         },
 
-        updatePlayerHand: function( hand )
+        updatePlayerHand: function( playTile, drawTile )
         {
-
-            // Remove all tiles from the player's hand
-            this.playerHand.removeAll();
-
-            // Add tiles to the player's hand
-            for ( var i in hand) {
-                var tile = hand[i];
-                this.playerHand.addToStockWithId(tile.type_arg, tile.id);
+            // Remove the played tile from the hand
+            if( playTile != null ){
+                this.playerHand.removeFromStockById( playTile.id );
             }
 
-            if( this.isCurrentPlayerActive() ) {
-                dojo.query( '.playerTile' ).attr( 'draggable', true );
-                dojo.query( '.playerTile' ).connect( 'ondrag', this, function(){} );
+            // Add the drawn tile to the hand
+            if( drawTile != null ){
+                this.playerHand.addToStockWithId(drawTile.type_arg, drawTile.id);
             }
         },
 
@@ -287,17 +286,18 @@ function (dojo, declare) {
         /*
          * Handle a tile dropped on a space.
          */
-        onPlayTile: function( evt )
+        onPlayTile: function( event )
         {
             // Stop this event propagation
-            dojo.stopEvent( evt );
+            dojo.stopEvent( event );
 
             // Get the dropped space X and Y
             // Note: space id format is "space_X_Y"
-            var coords = evt.currentTarget.id.split('_');
+            var coords = event.currentTarget.id.split('_');
             var x = coords[1];
             var y = coords[2];
-            var tileId = 1; //TODO: update to get tileId from draggable!
+
+            console.log('Playable space ('+x+','+y+') clicked!');
 
             if( ! dojo.hasClass( 'space_'+x+'_'+y, 'playableSpace' ) )
             {
@@ -307,15 +307,23 @@ function (dojo, declare) {
             
             if( this.checkAction( 'playTile' ) )    // Check that this action is possible at this moment
             {
-                // Get the id of the dropped tile
-                var tileId = evt.dataTransfer.getData("text");
+                // Get the selected tiles (should only be 1)
+                var tiles = this.playerHand.getSelectedItems();
 
-                // Tell the server to process the played tile
-                this.ajaxcall( "/twentyfourseven/twentyfourseven/playTile.html", {
-                    x:x,
-                    y:y,
-                    tileId:tileId
-                }, this, function( result ) {} );
+                if( tiles.length == 1 ){
+                    console.log('Tile type: ' + tiles[0].type + ', id: ' + tiles[0].id + ' played!');
+
+                    // Exactly 1 tile selected, tell the server to process the played tile
+                    this.ajaxcall( "/twentyfourseven/twentyfourseven/playTile.html", {
+                        x:x,
+                        y:y,
+                        tileId:tiles[0].id
+                    }, this, function( result ) {} );
+                }
+                else
+                {
+                    console.log('Wrong number of tiles selected - ' + tiles.length + '.');
+                }
             }            
         },        
             
@@ -339,6 +347,8 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous( 'playTile', 500 );
             dojo.subscribe( 'newScores', this, "notif_newScores" );
             this.notifqueue.setSynchronous( 'newScores', 500 );
+            dojo.subscribe( 'handChange', this, "notif_handChange" );
+            this.notifqueue.setSynchronous( 'handChange', 500 );
         },  
         
         /*
@@ -346,10 +356,13 @@ function (dojo, declare) {
          */
         notif_playTile: function( notif )
         {
-            // Remove current playable spaces (makes the board more clear)
-            dojo.query( '.playableSpace' ).removeClass( 'playableSpace' );        
-        
+            // Clear any playable spaces after a tile has been played
+            dojo.query( '.playableSpace' ).removeClass( 'playableSpace' ); 
+
+            // Add the played tile to the board
             this.addPieceOnBoard( notif.args.x, notif.args.y, notif.args.value, notif.args.player_id );
+
+            console.log(notif.args.lines);
         },
 
         /*
@@ -362,6 +375,14 @@ function (dojo, declare) {
                 var newScore = notif.args.scores[ player_id ];
                 this.scoreCtrl[ player_id ].toValue( newScore );
             }
+        },
+        
+        /*
+         * Handle the hand change notification.
+         */
+        notif_handChange: function( notif )
+        {
+            this.updatePlayerHand( notif.args.playTile, notif.args.drawTile );
         },
         
    });             

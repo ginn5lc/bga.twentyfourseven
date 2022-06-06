@@ -70,12 +70,15 @@ class TwentyFourSeven extends Table
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
+
         $values = array();
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
         }
+        unset( $player );
+
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
         self::reattributeColorsBasedOnPreferences( $players, $gameinfos['player_colors'] );
@@ -115,6 +118,7 @@ class TwentyFourSeven extends Table
         foreach ( $players as $player_id => $player ) {
             $this->tiles->pickCards($hand_size, 'deck', $player_id);
         }
+        unset( $player );
 
         // Init the board
         $sql = "INSERT INTO board (board_x,board_y,board_value) VALUES ";
@@ -160,7 +164,7 @@ class TwentyFourSeven extends Table
         $result['players'] = self::getCollectionFromDb( $sql );
   
         // Tiles in player hand
-        $result['hand'] = $this->tiles->getCardsInLocation( 'hand', $current_player_id );
+        $result['hand'] = $this->tiles->getPlayerHand( $current_player_id );
         // Pieces (tiles and time out stones) on the board
         $result['board'] = self::getObjectListFromDB( "SELECT board_x x, board_y y, board_value value
                                                        FROM board
@@ -208,7 +212,8 @@ class TwentyFourSeven extends Table
      * Get the lines at (x,y). When (x,y) does not contain a tile (value > 0), 
      * no lines are returned.
      */
-    function getLinesAtSpace( $x, $y ) {
+    function getLinesAtSpace( $x, $y )
+    {
         $lines = array();
         $lines[0] = $this->getHLineAtSpace( $x, $y );
         $lines[1] = $this->getVLineAtSpace( $x, $y );
@@ -221,25 +226,26 @@ class TwentyFourSeven extends Table
      * Gets the horizontal line at (x,y). When (x,y) does not contain a tile 
      * (value > 0), no line is returned.
      */
-    function getHLineAtSpace( $x, $y ) {
+    function getHLineAtSpace( $x, $y )
+    {
         self::DbQuery( "SET @x := $x, @y := $y" );
-        return self::getObjectListFromDB( "SELECT B.board_x x, B.board_y y, B.board_value value
-                                            FROM (
-                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
-                                                FROM board b join (SELECT @exp := 0, @act := 0) c
-                                                WHERE board_y = @y
-                                                ORDER BY board_x, board_y
+        return self::getObjectListFromDB( "SELECT B.board_x x, B.board_y y, B.board_value value 
+                                            FROM ( 
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act 
+                                                FROM board b join (SELECT @exp := 0, @act := 0) c 
+                                                WHERE board_y = @y 
+                                                ORDER BY board_x, board_y 
                                             ) B 
-                                            JOIN (
-                                                SELECT COUNT(*) tep FROM board WHERE board_x <= @x AND board_y = @y
+                                            JOIN ( 
+                                                SELECT COUNT(*) tep FROM board WHERE board_x <= @x AND board_y = @y 
                                             ) E 
-                                            JOIN (
-                                                SELECT COUNT(*) tap FROM board WHERE board_x <= @x AND board_y = @y AND board_value > 0
-                                            ) A
+                                            JOIN ( 
+                                                SELECT COUNT(*) tap FROM board WHERE board_x <= @x AND board_y = @y AND board_value > 0 
+                                            ) A 
                                             WHERE 
-                                                B.board_value > 0 AND -- Space has a tile
-                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
-                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                                B.board_value > 0 AND -- Space has a tile 
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist 
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position 
                                             ORDER BY B.board_x, B.board_y " );
     }
 
@@ -247,25 +253,26 @@ class TwentyFourSeven extends Table
      * Gets the vertical line at (x,y). When (x,y) does not contain a tile 
      * (value > 0), no line is returned.
      */
-    function getVLineAtSpace( $x, $y ) {
+    function getVLineAtSpace( $x, $y )
+    {
         self::DbQuery( "SET @x := $x, @y := $y" );
-        return self::getObjectListFromDB( "SELECT B.board_x, B.board_y, B.board_value
-                                            FROM (
-                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
-                                                FROM board b join (SELECT @exp := 0, @act := 0) c
-                                                WHERE board_x = @x
-                                                ORDER BY board_x, board_y
+        return self::getObjectListFromDB( "SELECT B.board_x x, B.board_y y, B.board_value value 
+                                            FROM ( 
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act 
+                                                FROM board b join (SELECT @exp := 0, @act := 0) c 
+                                                WHERE board_x = @x 
+                                                ORDER BY board_x, board_y 
                                             ) B 
-                                            JOIN (
-                                                SELECT COUNT(*) tep FROM board WHERE board_x = @x AND board_y <= @y
+                                            JOIN ( 
+                                                SELECT COUNT(*) tep FROM board WHERE board_x = @x AND board_y <= @y 
                                             ) E 
-                                            JOIN (
-                                                SELECT COUNT(*) tap FROM board WHERE board_x = @x AND board_y <= @y AND board_value > 0
-                                            ) A
+                                            JOIN ( 
+                                                SELECT COUNT(*) tap FROM board WHERE board_x = @x AND board_y <= @y AND board_value > 0 
+                                            ) A 
                                             WHERE 
-                                                B.board_value > 0 AND -- Space has a tile
-                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
-                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                                B.board_value > 0 AND -- Space has a tile 
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist 
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position 
                                             ORDER BY B.board_x, B.board_y " );
     }
     
@@ -273,25 +280,26 @@ class TwentyFourSeven extends Table
      * Gets the left diagonal (NW->SE) line at (x,y). When (x,y) does not 
      * contain a tile (value > 0), no line is returned.
      */
-    function getLDLineAtSpace( $x, $y ) {
+    function getLDLineAtSpace( $x, $y )
+    {
         self::DbQuery( "SET @x := $x, @y := $y" );
-        return self::getObjectListFromDB( "SELECT B.board_x, B.board_y, B.board_value
-                                            FROM (
-                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
-                                                FROM board b join (SELECT @exp := 0, @act := 0) c
-                                                WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x
-                                                ORDER BY board_x, board_y
+        return self::getObjectListFromDB( "SELECT B.board_x x, B.board_y y, B.board_value value 
+                                            FROM ( 
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act 
+                                                FROM board b join (SELECT @exp := 0, @act := 0) c 
+                                                WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x 
+                                                ORDER BY board_x, board_y 
                                             ) B 
-                                            JOIN (
-                                                SELECT COUNT(*) tep FROM board WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x AND board_x <= @x AND board_y <= @y
+                                            JOIN ( 
+                                                SELECT COUNT(*) tep FROM board WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x AND board_x <= @x AND board_y <= @y 
                                             ) E 
-                                            JOIN (
-                                                SELECT COUNT(*) tap FROM board WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x AND board_x <= @x AND board_y <= @y AND board_value > 0
-                                            ) A
+                                            JOIN ( 
+                                                SELECT COUNT(*) tap FROM board WHERE board_x = (@x - @y) + board_y AND board_y = (@y - @x) + board_x AND board_x <= @x AND board_y <= @y AND board_value > 0 
+                                            ) A 
                                             WHERE 
-                                                B.board_value > 0 AND -- Space has a tile
-                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
-                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                                B.board_value > 0 AND -- Space has a tile 
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist 
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position 
                                             ORDER BY B.board_x, B.board_y " );
     }
     
@@ -299,25 +307,26 @@ class TwentyFourSeven extends Table
      * Gets the right diagonal (SW->NE) line at (x,y). When (x,y) does not 
      * contain a tile (value > 0), no line is returned.
      */
-    function getRDLineAtSpace( $x, $y ) {
+    function getRDLineAtSpace( $x, $y )
+    {
         self::DbQuery( "SET @x := $x, @y := $y") ;
-        return self::getObjectListFromDB( "SELECT B.board_x, B.board_y, B.board_value
-                                            FROM (
-                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act
-                                                FROM board b JOIN (SELECT @exp := 0, @act := 0) c
-                                                WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x
-                                                ORDER BY board_x, board_y
+        return self::getObjectListFromDB( "SELECT B.board_x x, B.board_y y, B.board_value value 
+                                            FROM ( 
+                                                SELECT board_x, board_y, board_value, @exp := @exp + 1 exp, CASE WHEN board_value > 0 THEN @act := @act + 1 ELSE @act END act 
+                                                FROM board b JOIN (SELECT @exp := 0, @act := 0) c 
+                                                WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x 
+                                                ORDER BY board_x, board_y 
                                             ) B 
-                                            JOIN (
-                                                SELECT COUNT(*) tep FROM board WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x AND board_x <= @x AND board_y >= @y
+                                            JOIN ( 
+                                                SELECT COUNT(*) tep FROM board WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x AND board_x <= @x AND board_y >= @y 
                                             ) E 
-                                            JOIN (
-                                                SELECT COUNT(*) tap FROM board WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x AND board_x <= @x AND board_y >= @y AND board_value > 0
-                                            ) A
+                                            JOIN ( 
+                                                SELECT COUNT(*) tap FROM board WHERE board_x = (@x + @y) - board_y AND board_y = (@x + @y) - board_x AND board_x <= @x AND board_y >= @y AND board_value > 0 
+                                            ) A 
                                             WHERE 
-                                                B.board_value > 0 AND -- Space has a tile
-                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist
-                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position
+                                                B.board_value > 0 AND -- Space has a tile 
+                                                E.tep > 0 AND A.tap > 0 AND -- Tile expected and actual positions exist 
+                                                (B.exp - E.tep) = (B.act - A.tap) -- Relative expected position == Actual expected position 
                                             ORDER BY B.board_x, B.board_y " );
     }
     
@@ -331,8 +340,8 @@ class TwentyFourSeven extends Table
                                             JOIN board A ON 
                                                 E.board_value IS NULL AND 
                                                 A.board_value IS NOT NULL AND A.board_value > 0 AND 
-                                                A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND
-                                                A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1)" );
+                                                A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND 
+                                                A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1) " );
     }
 
     /*
@@ -340,7 +349,9 @@ class TwentyFourSeven extends Table
      */
     function getPlayableTiles( $player_id )
     {
-        $result = array();
+        //TODO: UPDATE TO GAME LOGIC!
+//        $result = array();
+        $result = $this->tiles->getPlayerHand( $player_id );
 
         // Find the largest tile that can be played on the board
         // Return the list of tiles in the player's hand less than or equal 
@@ -352,7 +363,8 @@ class TwentyFourSeven extends Table
     /*
      * Determine whether any player has a playable tile
      */
-    function doesPlayableTileExist() {
+    function doesPlayableTileExist()
+    {
         // Get smallest tile held by players
         // Get largest tile that can be played on the board
         //TODO: GET TILE VALUES!!
@@ -363,6 +375,81 @@ class TwentyFourSeven extends Table
         } else {
             return false;
         }
+    }
+
+    /*
+        Score the space
+    */
+    function scoreSpace( $x, $y )
+    {
+        $lines = self::getLinesAtSpace( $x, $y );
+
+        /*
+            Tally
+            0 - Sum of 7
+            1 - Sum of 24
+            2 - Sum of 24 by 7 tiles
+            3 - Run of 3
+            4 - Run of 4
+            5 - Run of 5
+            6 - Run of 6
+            7 - Set of 3
+            8 - Set of 4
+            9 - Bonus
+        */
+        $tally = array();
+        for( $i=0; $i<10; $i++ ) 
+        {
+            $tally[$i] = 0;
+        }
+
+        foreach( $lines as $key => $spaces )
+        {
+            $sum = 0;
+            foreach( $spaces as $position => $space )
+            {
+                $sum += $space['value'];
+            }
+            unset( $space );
+
+            $length = count( $spaces );
+
+            if( $sum == 7 && $length > 1 ) $tally[0]++;
+            if( $sum == 24 && $length > 1 ) $tally[1]++;
+            if( $sum == 24 && $length == 7 ) $tally[2]++;
+
+        }
+        unset( $spaces );
+
+        // 24/7 Bonus Tally 
+        // 7 tally * 24 tally + 24 by 7 tile tally
+        $tally[9] = ($tally[0] * $tally[1]) + $tally[2];
+
+        $minutes = 
+            ($tally[0] * 20) +
+            ($tally[1] * 40) +
+            ($tally[3] * 30) +
+            ($tally[4] * 40) +
+            ($tally[5] * 50) +
+            ($tally[6] * 60) +
+            ($tally[7] * 50) +
+            ($tally[8] * 60) +
+            ($tally[9] * 60);
+        
+        $score = array();
+        $score['tally'] = $tally;
+        $score['minutes'] = $minutes;
+
+        return $score;
+    }
+
+    /*
+        Update the board at (x,y) with value
+    */
+    function updateBoard( $x, $y, $val )
+    {
+        //TODO: Check parms for valid values!
+        self::DbQuery( "UPDATE board SET board_value = $val WHERE board_x = $x AND board_y = $y") ;
     }
 
 
@@ -396,21 +483,24 @@ class TwentyFourSeven extends Table
          * - The sum of any line passing through the space sums to 24 or less
          * after playing the tile.
          */
+
+        $playTile = $this->tiles->getCard( $tileId );
+
         //TODO
-        if( TRUE )
-        {
+        if (true) {
             // This move is possible!
 
             /*
              * Update the board at (x,y) with the value of the tile 
              */
-            //TODO
+            $val = $playTile['type_arg'];
+            self::updateBoard( $x, $y, $val );
 
             /*
              * Change the location of the tile from the player's hand to 
              * the board.
              */
-            //TODO
+            $this->tiles->moveCard( $tileId, 'board' );
 
             /*
              * Mark any playable spaces with time out stones (value = 0) that 
@@ -420,16 +510,20 @@ class TwentyFourSeven extends Table
             //TODO
 
             /*
-             * Score the space. Get all the lines passing through the space 
-             * (x,y) and tally the score.
-             */
-            //TODO
+                Score the space. Get all the lines passing through the space 
+                (x,y) and tally the score.
+            */
+            $lines = self::getLinesAtSpace( $x, $y );
+            $score = self::scoreSpace( $x, $y );
 
             /*
              * Update the player score. Add the total scored from playing the 
              * tile to the player's score.
              */
-            //TODO
+            $minutes = $score['minutes'];
+            self::DbQuery( "UPDATE player
+                            SET player_score = player_score + $minutes
+                            WHERE player_id = $player_id");
 
             /*
              * Update the statistics for the player. Increase the tallies for 
@@ -441,7 +535,7 @@ class TwentyFourSeven extends Table
             /*
              * Draw a tile and add it to the player's hand.
              */
-            //TODO
+            $drawTile = $this->tiles->pickCard( 'deck', $player_id );
 
             /*
              * Notify players of the game progression.
@@ -450,13 +544,15 @@ class TwentyFourSeven extends Table
             /*
              * Played tile notification
              */
+            $minutes = 0;
             self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on row ${x} and column ${y} and scored ${minutes} minutes' ), array(
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
-                'minutes' => count( $minutes ),
-                'value' => $value,
+                'minutes' => $score['minutes'],
+                'value' => $val,
                 'x' => $x,
-                'y' => $y
+                'y' => $y,
+                'lines' => $lines
             ) );
 
             /*
@@ -465,6 +561,14 @@ class TwentyFourSeven extends Table
             $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
             self::notifyAllPlayers( "newScores", "", array(
                 "scores" => $newScores
+            ) );
+
+            /*
+                Hand change notification (only to player playing tile)
+            */
+            self::notifyPlayer( $player_id, "handChange", "", array(
+                "playTile" => $playTile,
+                "drawTile" => $drawTile
             ) );
 
             // Go to the next state
@@ -487,12 +591,11 @@ class TwentyFourSeven extends Table
 
     function argPlayerTurn()
     {
-        $current_player_id = self::getCurrentPlayerId();
+//        $current_player_id = self::getCurrentPlayerId();
 
         return array(
-            'playableSpaces' => self::getPlayableSpaces(),
-            'hand' => $this->tiles->getCardsInLocation( 'hand', $current_player_id )
-
+            'playableSpaces' => self::getPlayableSpaces() //,
+//            'hand' => $this->tiles->getPlayerHand( $current_player_id )
         );
     }
 
@@ -500,7 +603,8 @@ class TwentyFourSeven extends Table
 //////////// Game state actions
 ////////////
 
-    function stNextPlayer() {
+    function stNextPlayer()
+    {
         // Active next player
         $player_id = self::activeNextPlayer();
 
@@ -523,7 +627,7 @@ class TwentyFourSeven extends Table
          * tile. If all players hands are empty or none of their tiles can be 
          * played (because they are too large), the game is over.
          */
-        if( self::doesPlayableTileExist() ) {
+        if ( ! self::doesPlayableTileExist() ) {
             /*
              * No player has a tile that can be played on the board or all 
              * players are out of tiles. Game over.
@@ -537,7 +641,7 @@ class TwentyFourSeven extends Table
          * player's hand playable? 
          */
         $playableTiles = self::getPlayableTiles( $player_id );
-        if( count( $playableTiles ) == 0 ) {
+        if ( count( $playableTiles ) == 0 ) {
             /*
              * This player can't play. Since we are here, we know there are 
              * playable spaces on the board and at least one player has a tile
@@ -552,7 +656,6 @@ class TwentyFourSeven extends Table
             self::giveExtraTime( $player_id );
             $this->gamestate->nextState( 'nextTurn' );
         }
-
     }
 
 //////////////////////////////////////////////////////////////////////////////
