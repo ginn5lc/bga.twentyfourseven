@@ -106,6 +106,16 @@ function (dojo, declare) {
             */
             // TODO: remove
 
+            // Listen for click events on the board
+            /*
+                'this' will not be the 24/7 JS instance when onPlayTile is 
+                called so it needs to be captured when the listener is 
+                registered and passed to the function so it has access to 
+                other properties and functions during it's execution.
+            */
+            var self = this;
+            document.querySelector( '#board' ).addEventListener( 'click', function( event ) { self.onPlayTile( event, self ); } );
+
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
@@ -250,8 +260,6 @@ function (dojo, declare) {
                     dojo.addClass( 'space_'+space.x+'_'+space.y, 'playableSpace' );
                 }
 
-                dojo.query( '.playableSpace' ).connect( 'onclick', this, 'onPlayTile' );
-
                 this.addTooltipToClass( 'playableSpace', '', _('Play a tile here') );
             }
         },
@@ -284,48 +292,50 @@ function (dojo, declare) {
         */
         
         /*
-         * Handle a tile dropped on a space.
-         */
-        onPlayTile: function( event )
+            Handle playing a tile (clicking a playable space).
+
+            Since this will be called from an event handler, we need to pass
+            along the game instance when registering the handler.
+        */
+        onPlayTile: function( event, game )
         {
-            // Stop this event propagation
-            dojo.stopEvent( event );
+            // Stop propagation and prevent any default handling of the event
+            event.stopPropagation();
+            event.preventDefault();
 
-            // Get the dropped space X and Y
-            // Note: space id format is "space_X_Y"
-            var coords = event.currentTarget.id.split('_');
-            var x = coords[1];
-            var y = coords[2];
-
-            console.log('Playable space ('+x+','+y+') clicked!');
-
-            if( ! dojo.hasClass( 'space_'+x+'_'+y, 'playableSpace' ) )
+            if( event.target.classList.contains( 'playableSpace' ) )
             {
-                // This is not a possible move => the drop does nothing
-                return ;
-            }
-            
-            if( this.checkAction( 'playTile' ) )    // Check that this action is possible at this moment
-            {
-                // Get the selected tiles (should only be 1)
-                var tiles = this.playerHand.getSelectedItems();
+                // Get the clicked space X and Y
+                // Note: space id format is "space_X_Y"
+                var coords = event.target.id.split('_');
+                var x = coords[1];
+                var y = coords[2];
 
-                if( tiles.length == 1 ){
-                    console.log('Tile type: ' + tiles[0].type + ', id: ' + tiles[0].id + ' played!');
+                console.log('Playable space ('+x+','+y+') clicked!');
 
-                    // Exactly 1 tile selected, tell the server to process the played tile
-                    this.ajaxcall( "/twentyfourseven/twentyfourseven/playTile.html", {
-                        lock:true,
-                        x:x,
-                        y:y,
-                        tileId:tiles[0].id
-                    }, this, function( result ) {} );
-                }
-                else
+                if( game.checkAction( 'playTile' ) )    // Check that this action is possible at this moment
                 {
-                    console.log('Wrong number of tiles selected - ' + tiles.length + '.');
-                }
-            }            
+                    // Get the selected tiles (should only be 1)
+                    var tiles = game.playerHand.getSelectedItems();
+
+                    if( tiles.length == 1 ){
+                        console.log('Tile type: ' + tiles[0].type + ', id: ' + tiles[0].id + ' played!');
+
+                        // Exactly 1 tile selected, tell the server to process the played tile
+                        game.ajaxcall( "/twentyfourseven/twentyfourseven/playTile.html", {
+                            lock:true,
+                            x:x,
+                            y:y,
+                            tileId:tiles[0].id
+                        }, game, function( result ) {} );
+                    }
+                    else
+                    {
+                        console.log('Wrong number of tiles selected - ' + tiles.length + '.');
+                    }
+                }            
+            }
+
         },        
             
         ///////////////////////////////////////////////////
