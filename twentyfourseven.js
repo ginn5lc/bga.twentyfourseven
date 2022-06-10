@@ -315,6 +315,7 @@ function (dojo, declare) {
 
                     // Exactly 1 tile selected, tell the server to process the played tile
                     this.ajaxcall( "/twentyfourseven/twentyfourseven/playTile.html", {
+                        lock:true,
                         x:x,
                         y:y,
                         tileId:tiles[0].id
@@ -362,7 +363,7 @@ function (dojo, declare) {
             // Add the played tile to the board
             this.addPieceOnBoard( notif.args.x, notif.args.y, notif.args.value, notif.args.player_id );
 
-            console.log(notif.args.lines);
+            console.log(notif.args.score);
         },
 
         /*

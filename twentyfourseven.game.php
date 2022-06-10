@@ -22,6 +22,25 @@ require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
 class TwentyFourSeven extends Table
 {
+
+    private const SUM_OF_7 = "Sum of 7";
+    private const SUM_OF_24 = "Sum of 4";
+    private const RUN_OF_3 = "Run of 3";
+    private const RUN_OF_4 = "Run of 4";
+    private const RUN_OF_5 = "Run of 5";
+    private const RUN_OF_6 = "Run of 6";
+    private const SET_OF_3 = "Set of 3";
+    private const SET_OF_4 = "Set of 4";
+    private const BONUS = "Bonus";
+
+    private const RUN = "Run";
+    private const SET = "Set";
+
+    private const RUN_SET_DIRECTIONS = [
+        self::RUN => [ 1, -1 ],
+        self::SET => [ 0 ]
+    ];
+
 	function __construct( )
 	{
         // Your global variables labels:
@@ -361,6 +380,24 @@ class TwentyFourSeven extends Table
     }
 
     /*
+        Determine whether a space is double time.
+    */
+    function isDoubleTime( $x, $y )
+    {
+        // Only spaces between (1,1) and (7,7) can be double time
+        if ( $x < 1 || $x > 7 || $y < 1 || $y > 7 ) return false;
+
+        // Translate coords to serial location (1..49)
+        $loc = ( ( $x - 1 ) * 7 ) + $y;
+
+        /*
+            A double time space is any serial location that is a multiple of 5 
+            (5, 10, 15, etc) except the center space (25).
+        */
+        return ( ( $loc % 5 ) == 0 ) && ( ( $loc % 25 ) != 0 );
+    }
+
+    /*
      * Determine whether any player has a playable tile
      */
     function doesPlayableTileExist()
@@ -378,6 +415,127 @@ class TwentyFourSeven extends Table
     }
 
     /*
+        Find the runs and sets in a line. Any run or set found must contain 
+        the space (x,y) where the tile was played.
+    */
+    private function runsAndSets( $x, $y, $line )
+    {
+
+        $possible = array(); // Empty array to accumulate the next possible run or set
+        $has_played_space = false;
+        $results = [
+            self::RUN => array(),
+            self::SET => array()
+        ];
+
+        foreach( self::RUN_SET_DIRECTIONS as $type => $directions )
+        {
+
+            foreach( $directions as $direction )
+            {
+
+                foreach( $line as $space )
+                {
+
+                    $last_key = array_key_last( $possible );
+                    if( $last_key != null && ( $space['value'] - $possible[$last_key]['value'] != $direction ) )
+                    {
+                        /*
+                            The possible has at least 1 element and the 
+                            difference between the value of the current space 
+                            and the last space in the possible is not the same 
+                            as the direction (i.e., 1 or -1 for runs and 0 for 
+                            sets). Check if the possible is a result and 
+                            start a new possible to accumulate the current 
+                            space.
+                        */
+                        if( count( $possible ) > 2 && $has_played_space ) 
+                        {
+                            /*
+                                The possible is the correct length for a run or 
+                                set (i.e., 3 or more) and contains the space 
+                                where the tile was played (x, y). Copy the 
+                                possible to the results.
+                            */
+                            $combo = array();
+                            foreach( $possible as $p_space )
+                            {
+                                $combo[] = $p_space;
+                            }
+                            unset( $p_space );
+
+                            // Add the combo to the type in the results
+                            $results[$type][] = $combo;
+                            unset( $combo );
+                        }
+
+                        /*
+                            The possible was either copied to the result or 
+                            is not valid. Create a new possible and clear the 
+                            has played space flag.
+                        */
+                        $possible = array();
+                        $has_played_space = false;
+                    }
+
+                    /*
+                        Either the current possible hasn't ended or a new 
+                        possible has been created because the current space
+                        didn't match the direction needed to continue the 
+                        possible. In either case add the space to the 
+                        possible.
+                    */
+                    $possible[] = $space;
+                    if( $space['x'] == $x && $space['y'] == $y )
+                    {
+                        $has_played_space = true;
+                    }
+
+                }
+                unset( $space );
+
+                /*
+                    Finished iterating over the line for the current type and 
+                    direction. Check the possible array to see whether it 
+                    should be added to results.
+                */
+                if( count( $possible ) > 2 && $has_played_space ) 
+                {
+                    /*
+                        The possible is the correct length for a run or 
+                        set (i.e., 3 or more) and contains the space 
+                        where the tile was played (x, y). Copy the 
+                        possible to the results.
+                    */
+                    $combo = array();
+                    foreach( $possible as $p_space )
+                    {
+                        $combo[] = $p_space;
+                    }
+                    unset( $p_space );
+
+                    // Add the combo to the type in the results
+                    $results[$type][] = $combo;
+                    unset( $combo );
+                }
+
+                /*
+                    Will start a new type and direction iteration if any are 
+                    left. Create a new possible and clear the has played space 
+                    flag.
+                */
+                $possible = array();
+                $has_played_space = false;
+
+            }
+            unset( $direction );
+        }
+        unset( $directions );
+
+        return $results;
+    }
+
+    /*
         Score the space
     */
     function scoreSpace( $x, $y )
@@ -388,53 +546,118 @@ class TwentyFourSeven extends Table
             Tally
             0 - Sum of 7
             1 - Sum of 24
-            2 - Sum of 24 by 7 tiles
+            2 - 24/7 Bonus
             3 - Run of 3
             4 - Run of 4
             5 - Run of 5
             6 - Run of 6
             7 - Set of 3
             8 - Set of 4
-            9 - Bonus
         */
         $tally = array();
-        for( $i=0; $i<10; $i++ ) 
+        for( $i=0; $i<9; $i++ ) 
         {
             $tally[$i] = 0;
         }
 
-        foreach( $lines as $key => $spaces )
+        foreach( $lines as $line )
         {
-            $sum = 0;
-            foreach( $spaces as $position => $space )
-            {
-                $sum += $space['value'];
+            $length = count( $line );
+            // Only score lines with 2 or more spaces
+            if( $length > 1) {
+                // Sum of combos
+                $sum = 0;
+                foreach( $line as $space )
+                {
+                    $sum += $space['value'];
+                }
+                unset( $space );
+    
+                if( $sum == 7 ) $tally[0]++; // Sum of 7
+                if( $sum == 24 ) $tally[1]++; // Sum of 24
+                if( $sum == 24 && $length == 7 ) $tally[2]++; // 24/7 Bonus - Sum of 24 by 7 tiles
+
+                // Get the runs and sets for this line that include (x,y)
+                $runs_and_sets = self::runsAndSets( $x, $y, $line );
+
+                // Tally the runs and sets
+                foreach( $runs_and_sets as $type => $combos )
+                {
+                    foreach( $combos as $combo )
+                    {
+                        $length = count( $combo );
+
+                        switch( $type )
+                        {
+                            case self::RUN :
+                                {
+                                    switch( $length )
+                                    {
+                                        case 3 : $tally[3]++; break;
+                                        case 4 : $tally[4]++; break;
+                                        case 5 : $tally[5]++; break;
+                                        case 6 : $tally[6]++; break;
+                                    }
+                                    break;
+                                }
+                            case self::SET :
+                                {
+                                    switch( $length )
+                                    {
+                                        case 3 : $tally[7]++; break;
+                                        case 4 : $tally[8]++; break;
+                                    }
+                                    break;
+                                }
+                        }
+                    }
+                    unset( $combo );
+                }
+                unset( $combos );
             }
-            unset( $space );
-
-            $length = count( $spaces );
-
-            if( $sum == 7 && $length > 1 ) $tally[0]++;
-            if( $sum == 24 && $length > 1 ) $tally[1]++;
-            if( $sum == 24 && $length == 7 ) $tally[2]++;
 
         }
-        unset( $spaces );
+        unset( $line );
 
-        // 24/7 Bonus Tally 
-        // 7 tally * 24 tally + 24 by 7 tile tally
-        $tally[9] = ($tally[0] * $tally[1]) + $tally[2];
+        /*
+            24/7 Bonus Tally
 
+            The bouns tally already has any sum of 24 by 7 tiles tallied. Add 
+            to this any regular 24/7 bonus (sum of 7 tally * sum of 24 tally).
+        */
+        $tally[2] += ($tally[0] * $tally[1]);
+
+        /*
+            Double Time
+
+            When the space being scored (i.e., the position on the board where 
+            the tile was played) is a double time space, double all the 
+            tallies (i.e., twice as many minutes).
+        */
+        if( self::isDoubleTime( $x, $y ) ) 
+        {
+            for( $i=0; $i<9; $i++ ) 
+            {
+                $tally[$i] *= 2;
+            }
+        }
+
+        /*
+            Calculate minutes
+
+            Minutes are simply the sum of the tallies multiplied by their 
+            minute values (Sum of 7 == 20, Sum of 24 == 40, etc).
+        */
         $minutes = 
-            ($tally[0] * 20) +
-            ($tally[1] * 40) +
-            ($tally[3] * 30) +
-            ($tally[4] * 40) +
-            ($tally[5] * 50) +
-            ($tally[6] * 60) +
-            ($tally[7] * 50) +
-            ($tally[8] * 60) +
-            ($tally[9] * 60);
+            ($tally[0] * 20) + // Sum of 7 score
+            ($tally[1] * 40) + // Sum of 24 score
+            ($tally[2] * 60) + // Bonus score
+            ($tally[3] * 30) + // Run of 3 score
+            ($tally[4] * 40) + // Run of 4 score
+            ($tally[5] * 50) + // Run of 5 score
+            ($tally[6] * 60) + // Run of 6 score
+            ($tally[7] * 50) + // Set of 3 score
+            ($tally[8] * 60);  // Set of 4 score
         
         $score = array();
         $score['tally'] = $tally;
@@ -513,7 +736,6 @@ class TwentyFourSeven extends Table
                 Score the space. Get all the lines passing through the space 
                 (x,y) and tally the score.
             */
-            $lines = self::getLinesAtSpace( $x, $y );
             $score = self::scoreSpace( $x, $y );
 
             /*
@@ -544,15 +766,14 @@ class TwentyFourSeven extends Table
             /*
              * Played tile notification
              */
-            $minutes = 0;
-            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on row ${x} and column ${y} and scored ${minutes} minutes' ), array(
+            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on column ${x} and row ${y} and scored ${minutes} minutes' ), array(
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
-                'minutes' => $score['minutes'],
+                'minutes' => $minutes,
                 'value' => $val,
                 'x' => $x,
                 'y' => $y,
-                'lines' => $lines
+                'score' => $score
             ) );
 
             /*
