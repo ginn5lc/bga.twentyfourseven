@@ -49,6 +49,9 @@ function (dojo, declare) {
         setup: function( gamedatas )
         {
             console.log( "Starting game setup" );
+
+            //TODO: REMOVE
+            console.log( gamedatas );
             
             // Setting up player boards
             for( var player_id in gamedatas.players )
@@ -76,15 +79,14 @@ function (dojo, declare) {
             }
 
             // Update the player's hand
-            for ( var i in this.gamedatas.hand) {
-                var tile = this.gamedatas.hand[i];
+            for ( const i in gamedatas.hand ) 
+            {
+                const tile = gamedatas.hand[ i ];
                 this.playerHand.addToStockWithId(tile.type_arg, tile.id);
             }
 
-            for( var i in gamedatas.board )
+            for( const space of gamedatas.board )
             {
-                var space = gamedatas.board[i];
-                
                 if( space.value !== null )
                 {
                     this.addPieceOnBoard( space.x, space.y, space.value );
@@ -118,11 +120,6 @@ function (dojo, declare) {
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
-
-            // TODO: remove
-            console.log( "GAMEDATAS" );
-            console.log( gamedatas );
-            // TODO: remove
 
             console.log( "Ending game setup" );
         },
@@ -252,10 +249,8 @@ function (dojo, declare) {
         {
             if( this.isCurrentPlayerActive() )
             {
-                for( var i in playableSpaces )
+                for( const space of playableSpaces )
                 {
-                    var space = playableSpaces[i];
-                    
                     // x,y is a playable space
                     dojo.addClass( 'space_'+space.x+'_'+space.y, 'playableSpace' );
                 }
@@ -373,7 +368,13 @@ function (dojo, declare) {
             // Add the played tile to the board
             this.addPieceOnBoard( notif.args.x, notif.args.y, notif.args.value, notif.args.player_id );
 
-            console.log(notif.args.score);
+            // Place any time out stones
+            for( const space of notif.args.time_out_spaces )
+            {
+                this.addPieceOnBoard( space.x, space.y, space.value, notif.args.player_id );
+            }
+
+            console.log(notif.args);
         },
 
         /*
@@ -381,7 +382,7 @@ function (dojo, declare) {
          */
         notif_newScores: function( notif )
         {
-            for( var player_id in notif.args.scores )
+            for( const player_id in notif.args.scores )
             {
                 var newScore = notif.args.scores[ player_id ];
                 this.scoreCtrl[ player_id ].toValue( newScore );

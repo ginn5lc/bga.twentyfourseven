@@ -221,6 +221,47 @@ class TwentyFourSeven extends Table
 //////////// Utility functions
 ////////////    
 
+    /*
+        Determine whether $value can be played at ($x, $y).
+    */
+    function canPlayValueAtSpace( $x, $y, $value )
+    {
+        // Can't play if not on the board and not a tile
+        if( $x < 1 || $x > 7 || $y < 1 || $y > 7 || $value < 1 || $value > 10 ) return false;
+
+        $board_value = self::getUniqueValueFromDb( "SELECT board_value FROM board WHERE board_x = $x AND board_y = $y" );
+
+        // Can't play if the space has something in it
+        if( ! is_null( $board_value ) ) return false;
+
+        // Put the value on the board at (x,y)
+        self::DbQuery( "UPDATE board SET board_value = $value WHERE board_x = $x AND board_y = $y" );
+
+        // Get the lines at (x,y)
+        $lines = self::getLinesAtSpace( $x, $y );
+
+        // Sum each line
+        $largest_sum = 0;
+        foreach( $lines as $line )
+        {
+            $current_sum = 0;
+            foreach( $line as $space )
+            {
+                $current_sum += $space['value'];
+            }
+            unset( $space );
+
+            if ($current_sum > $largest_sum) $largest_sum = $current_sum;
+        }
+        unset( $line );
+
+        // Remove the value from the board at (x,y)
+        self::DbQuery( "UPDATE board SET board_value = NULL WHERE board_x = $x AND board_y = $y" );
+
+        // If any line sums > 24, can't play otherwise can play
+        return $largest_sum > 24 ? false : true;
+    }
+
     // Get the complete board with a double associative array
     function getBoard()
     {
@@ -360,7 +401,9 @@ class TwentyFourSeven extends Table
                                                 E.board_value IS NULL AND 
                                                 A.board_value IS NOT NULL AND A.board_value > 0 AND 
                                                 A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND 
-                                                A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1) " );
+                                                A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1) 
+                                            GROUP BY E.board_x, E.board_y, E.board_value 
+                                            ORDER BY E.board_x, E.board_y " );
     }
 
     /*
@@ -412,6 +455,29 @@ class TwentyFourSeven extends Table
         } else {
             return false;
         }
+    }
+
+    /*
+        Block any playable space with a time out stone if playing a tile with 
+        the value of 1 would result in an invalid line (sum > 24).
+    */
+    function markTimeOutSpaces()
+    {
+        $time_out_spaces = array();
+
+        $playable_spaces = self::getPlayableSpaces();
+        foreach( $playable_spaces as ["x" => $x, "y" => $y] )
+        {
+            if( ! self::canPlayValueAtSpace( $x, $y, 1 ) )
+            {
+                self::DbQuery( "UPDATE board SET board_value = 0 WHERE board_x = $x AND board_y = $y" );
+                $time_out_spaces[] = [ "x" => $x, "y" => $y, "value" => 0 ];
+            }
+        }
+        unset( $x );
+        unset( $y );
+
+        return $time_out_spaces;
     }
 
     /*
@@ -688,7 +754,7 @@ class TwentyFourSeven extends Table
     /*
      * Play the given tile on the given space (x,y)
      */
-    function playTile( $x, $y, $tileId )
+    function playTile( $x, $y, $played_tile_id )
     {
         /*
          * Check that this player is active and that this action is possible 
@@ -707,30 +773,31 @@ class TwentyFourSeven extends Table
          * after playing the tile.
          */
 
-        $playTile = $this->tiles->getCard( $tileId );
+        $played_tile = $this->tiles->getCard( $played_tile_id );
+        $played_tile_value = $played_tile['type_arg'];
 
-        //TODO
-        if (true) {
+        //TODO: Is tile in active player's hand?
+        $can_play_tile = self::canPlayValueAtSpace( $x, $y, $played_tile_value );
+        if ( $can_play_tile ) {
             // This move is possible!
 
             /*
              * Update the board at (x,y) with the value of the tile 
              */
-            $val = $playTile['type_arg'];
-            self::updateBoard( $x, $y, $val );
+            self::updateBoard( $x, $y, $played_tile_value );
 
             /*
              * Change the location of the tile from the player's hand to 
              * the board.
              */
-            $this->tiles->moveCard( $tileId, 'board' );
+            $this->tiles->moveCard( $played_tile_id, 'board' );
 
             /*
              * Mark any playable spaces with time out stones (value = 0) that 
              * are no longer playable (placing any tile on the space would 
              * result in a line through the space adding up to more than 24).
              */
-            //TODO
+            $time_out_spaces = self::markTimeOutSpaces();
 
             /*
                 Score the space. Get all the lines passing through the space 
@@ -770,10 +837,11 @@ class TwentyFourSeven extends Table
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
                 'minutes' => $minutes,
-                'value' => $val,
+                'value' => $played_tile_value,
                 'x' => $x,
                 'y' => $y,
-                'score' => $score
+                'score' => $score, 
+                'time_out_spaces' => $time_out_spaces
             ) );
 
             /*
@@ -788,7 +856,7 @@ class TwentyFourSeven extends Table
                 Hand change notification (only to player playing tile)
             */
             self::notifyPlayer( $player_id, "handChange", "", array(
-                "playTile" => $playTile,
+                "playTile" => $played_tile,
                 "drawTile" => $drawTile
             ) );
 
