@@ -191,11 +191,6 @@ class TwentyFourSeven extends Table
         // Playable spaces on the board
         $result['spaces'] = self::getPlayableSpaces();
 
-        // TODO: remove
-        //$result['43lines'] = self::getLinesAtSpace( 4, 3 );
-        //$result['41lines'] = self::getLinesAtSpace( 4, 1 );
-        // TODO: remove
-
         return $result;
     }
 
@@ -441,20 +436,43 @@ class TwentyFourSeven extends Table
     }
 
     /*
-     * Determine whether any player has a playable tile
+     * Determine whether a playable tile exists for the player or all players 
+     * if player id is null
      */
-    function doesPlayableTileExist()
+    function doesPlayableTileExist( $player_id = null )
     {
-        // Get smallest tile held by players
-        // Get largest tile that can be played on the board
-        //TODO: GET TILE VALUES!!
-        $playerTileValue = 1;
-        $boardTileValue = 1;
-        if ($playerTileValue <= $boardTileValue) {
-            return true;
-        } else {
-            return false;
+        /*
+            Get the list of tiles in the hand of the player (or all if player 
+            id is null) ordered by the value of the tiles (i.e., card_type_arg 
+            in the database).
+            If no tiles in hand, no playable tile.
+            If any tiles are held, take the smallest tile and check whether it 
+            can be played on any of the current playable spaces. 
+        */
+
+        // Get the tiles in the hand of the player (null == all players)
+        $tiles_in_hand = $this->tiles->getCardsInLocation( "hand", $player_id, "card_type_arg" );
+
+        // No tiles. Nothing to play.
+        if( count( $tiles_in_hand ) == 0 ) return false;
+
+        $playable_tile_exists = false;
+        // The smallest tile in hand is the first element of the array since it is sorted by card_type_arg.
+        $smallest_tile_value = $tiles_in_hand[ 0 ][ "type_arg" ];
+        // See if this tile can be played on the board
+        $playable_spaces = self::getPlayableSpaces();
+        foreach( $playable_spaces as ["x" => $x, "y" => $y] )
+        {
+            if( self::canPlayValueAtSpace( $x, $y, $smallest_tile_value ) )
+            {
+                $playable_tile_exists = true;
+                break;
+            }
         }
+        unset( $x );
+        unset( $y );
+
+        return $playable_tile_exists;
     }
 
     /*
@@ -504,7 +522,7 @@ class TwentyFourSeven extends Table
                 {
 
                     $last_key = array_key_last( $possible );
-                    if( $last_key != null && ( $space['value'] - $possible[$last_key]['value'] != $direction ) )
+                    if( ! is_null( $last_key ) && ( ( $space['value'] - $possible[$last_key]['value'] ) != $direction ) )
                     {
                         /*
                             The possible has at least 1 element and the 
@@ -880,11 +898,8 @@ class TwentyFourSeven extends Table
 
     function argPlayerTurn()
     {
-//        $current_player_id = self::getCurrentPlayerId();
-
         return array(
-            'playableSpaces' => self::getPlayableSpaces() //,
-//            'hand' => $this->tiles->getPlayerHand( $current_player_id )
+            'playableSpaces' => self::getPlayableSpaces()
         );
     }
 
@@ -902,7 +917,8 @@ class TwentyFourSeven extends Table
          * are playable. If none exist, the game is over.
          */
         $playableSpaces = self::getPlayableSpaces();
-        if( count( $playableSpaces ) == 0 ) {
+        if( count( $playableSpaces ) == 0 ) 
+        {
             /*
              * The board has no playable spaces. Game over.
              */
@@ -916,7 +932,8 @@ class TwentyFourSeven extends Table
          * tile. If all players hands are empty or none of their tiles can be 
          * played (because they are too large), the game is over.
          */
-        if ( ! self::doesPlayableTileExist() ) {
+        if( ! self::doesPlayableTileExist() ) 
+        {
             /*
              * No player has a tile that can be played on the board or all 
              * players are out of tiles. Game over.
@@ -926,11 +943,10 @@ class TwentyFourSeven extends Table
         }
 
         /*
-         * Playable tiles by active player - Are any of the tiles in the active 
-         * player's hand playable? 
+         * Can the active player play a tile? 
          */
-        $playableTiles = self::getPlayableTiles( $player_id );
-        if ( count( $playableTiles ) == 0 ) {
+        if( ! self::doesPlayableTileExist( $player_id ) ) 
+        {
             /*
              * This player can't play. Since we are here, we know there are 
              * playable spaces on the board and at least one player has a tile
@@ -938,7 +954,9 @@ class TwentyFourSeven extends Table
              * take a turn.
              */
             $this->gamestate->nextState( 'cantPlay' );
-        } else {
+        } 
+        else 
+        {
             /*
              * This player can play. Give them some extra time
              */

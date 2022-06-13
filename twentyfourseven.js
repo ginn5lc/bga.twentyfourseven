@@ -61,16 +61,12 @@ function (dojo, declare) {
                 // TODO: Setting up players boards if needed
             }
             
-            // TODO: Set up your game interface here, according to "gamedatas"
-           
             // Player hand
             this.playerHand = new ebg.stock();
             this.playerHand.create(this, $('myhand'), this.tilewidth, this.tileheight);
             this.playerHand.image_items_per_row = 5;
             this.playerHand.extraClasses = 'playerTile';
             this.playerHand.setSelectionMode( 1 );
-
-//            dojo.connect( this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged' );
 
             // Create cards types:
             for (var value = 1; value <= 10; value++) {
@@ -92,21 +88,6 @@ function (dojo, declare) {
                     this.addPieceOnBoard( space.x, space.y, space.value );
                 }
             }
-
-            // TODO: remove
-            /* Testing tile placement/alignment/sprite
-            this.addPieceOnBoard( 1, 1, 1 );
-            this.addPieceOnBoard( 1, 2, 2 );
-            this.addPieceOnBoard( 1, 3, 3 );
-            this.addPieceOnBoard( 1, 4, 4 );
-            this.addPieceOnBoard( 1, 5, 5 );
-            this.addPieceOnBoard( 2, 1, 6 );
-            this.addPieceOnBoard( 2, 2, 7 );
-            this.addPieceOnBoard( 2, 3, 8 );
-            this.addPieceOnBoard( 2, 4, 9 );
-            this.addPieceOnBoard( 2, 5, 10 );
-            */
-            // TODO: remove
 
             // Listen for click events on the board
             /*
@@ -188,7 +169,6 @@ function (dojo, declare) {
         onEnterPlayerTurn: function( args )
         {
             this.updatePlayableSpaces( args.args.playableSpaces );
-//            this.updatePlayerHand( args.args.hand );
         },
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
