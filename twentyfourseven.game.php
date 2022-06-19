@@ -113,6 +113,25 @@ class TwentyFourSeven extends Table
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
+        // Table stats
+        self::initStat( 'table', 'turns_number', 0 );
+
+        // Player stats
+        foreach( $players as $player_id => $player )
+        {
+            self::initStat( 'player', 'turns_number', 0, $player_id );
+            self::initStat( 'player', 'tally_sum_of_7', 0, $player_id );
+            self::initStat( 'player', 'tally_sum_of_24', 0, $player_id );
+            self::initStat( 'player', 'tally_run_of_3', 0, $player_id );
+            self::initStat( 'player', 'tally_run_of_4', 0, $player_id );
+            self::initStat( 'player', 'tally_run_of_5', 0, $player_id );
+            self::initStat( 'player', 'tally_run_of_6', 0, $player_id );
+            self::initStat( 'player', 'tally_set_of_3', 0, $player_id );
+            self::initStat( 'player', 'tally_set_of_4', 0, $player_id );
+            self::initStat( 'player', 'tally_bonus', 0, $player_id );
+        }
+        unset( $player );
+
         // Create tiles
         $tiles = array();
         for ($value = 1; $value <= 10; $value ++) {
@@ -206,9 +225,38 @@ class TwentyFourSeven extends Table
     */
     function getGameProgression()
     {
-        // TODO: compute and return the game progression
+        /*
+            Playable spaces - Empty spaces adjacent to tiles on the board (value > 0) 
+            are playable. If none exist, the game is over and progression is 100.
+        */
+        $playableSpaces = self::getPlayableSpaces();
+        if( count( $playableSpaces ) == 0 ) return 100;
 
-        return 0;
+        /*
+            Playable tiles - Tiles in players hands are playable when every line 
+            through a playable space will add up to 24 or less after playing the 
+            tile. If all players hands are empty or none of their tiles can be 
+            played (because they are too large), the game is over and progression is 100.
+        */
+        if( ! self::doesPlayableTileExist() ) return 100;
+
+        /*
+            Game progression is a function of the number of tiles played versus 
+            the number of spaces available to play. At most, 37 tiles will be 
+            played on the board so 1 metric is to get the percentage of tiles 
+            played. Another metric is to get the percentage of spaces filled 
+            on the board.
+        */
+        $tiles_played = $this->tiles->countCardInLocation( "board" );
+        $spaces_filled = self::getUniqueValueFromDb( "SELECT COUNT(board_value) FROM board WHERE board_value IS NOT NULL" );
+
+        // 37 possible tile plays (3 are discarded at the beginning)
+        $tile_progression = intdiv( ($tiles_played * 100), 37 );
+        // 49 possible spaces to play on (some get time out stones)
+        $board_progression = intdiv( ($spaces_filled * 100), 49 );
+
+        // Return the larger value. Tile progression will be used earlier in the game and board progression later in the game.
+        return $tile_progression > $board_progression ? $tile_progression : $board_progression;
     }
 
 
@@ -255,12 +303,6 @@ class TwentyFourSeven extends Table
 
         // If any line sums > 24, can't play otherwise can play
         return $largest_sum > 24 ? false : true;
-    }
-
-    // Get the complete board with a double associative array
-    function getBoard()
-    {
-        return self::getDoubleKeyCollectionFromDB( "SELECT board_x x, board_y y, board_value value FROM board", true );
     }
 
     /*
@@ -399,22 +441,6 @@ class TwentyFourSeven extends Table
                                                 A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1) 
                                             GROUP BY E.board_x, E.board_y, E.board_value 
                                             ORDER BY E.board_x, E.board_y " );
-    }
-
-    /*
-     * Get the list of playable tiles for a player
-     */
-    function getPlayableTiles( $player_id )
-    {
-        //TODO: UPDATE TO GAME LOGIC!
-//        $result = array();
-        $result = $this->tiles->getPlayerHand( $player_id );
-
-        // Find the largest tile that can be played on the board
-        // Return the list of tiles in the player's hand less than or equal 
-        // to the largest tile that can be played
-
-        return $result;
     }
 
     /*
@@ -780,7 +806,6 @@ class TwentyFourSeven extends Table
          */
         self::checkAction( 'playTile' );
 
-        $board = self::getBoard();
         $player_id = self::getActivePlayerId();
         
         /*
@@ -792,11 +817,15 @@ class TwentyFourSeven extends Table
          */
 
         $played_tile = $this->tiles->getCard( $played_tile_id );
-        $played_tile_value = $played_tile['type_arg'];
+        $played_tile_value = $played_tile[ "type_arg" ];
+        $played_tile_location = $played_tile[ "location" ];
+        $played_tile_location_arg = $played_tile[ "location_arg" ];
 
-        //TODO: Is tile in active player's hand?
         $can_play_tile = self::canPlayValueAtSpace( $x, $y, $played_tile_value );
-        if ( $can_play_tile ) {
+        if ( $played_tile_location == "hand" &&  
+            $played_tile_location_arg == $player_id && 
+            $can_play_tile ) 
+        {
             // This move is possible!
 
             /*
@@ -837,7 +866,21 @@ class TwentyFourSeven extends Table
              * the player based on what was scored (runs, sets, 24/7s, etc) 
              * from playing the tile.
              */
-            //TODO
+
+            // Table stats
+            self::incStat( 1, 'turns_number' );
+
+            // Player stats
+            self::incStat( 1, 'turns_number', $player_id );
+            self::incStat( $score[ "tally" ][ 0 ], 'tally_sum_of_7', $player_id );
+            self::incStat( $score[ "tally" ][ 1 ], 'tally_sum_of_24', $player_id );
+            self::incStat( $score[ "tally" ][ 3 ], 'tally_run_of_3', $player_id );
+            self::incStat( $score[ "tally" ][ 4 ], 'tally_run_of_4', $player_id );
+            self::incStat( $score[ "tally" ][ 5 ], 'tally_run_of_5', $player_id );
+            self::incStat( $score[ "tally" ][ 6 ], 'tally_run_of_6', $player_id );
+            self::incStat( $score[ "tally" ][ 7 ], 'tally_set_of_3', $player_id );
+            self::incStat( $score[ "tally" ][ 8 ], 'tally_set_of_4', $player_id );
+            self::incStat( $score[ "tally" ][ 2 ], 'tally_bonus', $player_id );
 
             /*
              * Draw a tile and add it to the player's hand.

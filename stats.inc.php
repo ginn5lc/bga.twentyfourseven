@@ -56,18 +56,6 @@ $stats_type = array(
                     "name" => totranslate("Number of turns"),
                     "type" => "int" ),
 
-/*
-        Examples:
-
-
-        "table_teststat1" => array(   "id"=> 10,
-                                "name" => totranslate("table test stat 1"), 
-                                "type" => "int" ),
-                                
-        "table_teststat2" => array(   "id"=> 11,
-                                "name" => totranslate("table test stat 2"), 
-                                "type" => "float" )
-*/  
     ),
     
     // Statistics existing for each player
@@ -77,19 +65,42 @@ $stats_type = array(
                     "name" => totranslate("Number of turns"),
                     "type" => "int" ),
     
-/*
-        Examples:    
-        
-        
-        "player_teststat1" => array(   "id"=> 10,
-                                "name" => totranslate("player test stat 1"), 
-                                "type" => "int" ),
-                                
-        "player_teststat2" => array(   "id"=> 11,
-                                "name" => totranslate("player test stat 2"), 
-                                "type" => "float" )
+        "tally_sum_of_7" => array("id"=> 11,
+                    "name" => totranslate("Sum of 7 (20 minutes)"),
+                    "type" => "int" ),
 
-*/    
+        "tally_run_of_3" => array("id"=> 13,
+                    "name" => totranslate("Run of 3 (30 minutes)"),
+                    "type" => "int" ),
+
+        "tally_run_of_4" => array("id"=> 14,
+                    "name" => totranslate("Run of 4 (40 minutes)"),
+                    "type" => "int" ),
+
+        "tally_sum_of_24" => array("id"=> 12,
+                    "name" => totranslate("Sum of 24 (40 minutes)"),
+                    "type" => "int" ),
+
+        "tally_run_of_5" => array("id"=> 15,
+                    "name" => totranslate("Run of 5 (50 minutes)"),
+                    "type" => "int" ),
+
+        "tally_set_of_3" => array("id"=> 17,
+                    "name" => totranslate("Set of 3 (50 minutes)"),
+                    "type" => "int" ),
+
+        "tally_run_of_6" => array("id"=> 16,
+                    "name" => totranslate("Run of 6 (60 minutes)"),
+                    "type" => "int" ),
+
+        "tally_set_of_4" => array("id"=> 18,
+                    "name" => totranslate("Set of 4 (60 minutes)"),
+                    "type" => "int" ),
+
+        "tally_bonus" => array("id"=> 19,
+                    "name" => totranslate("Bonus (60 minutes)"),
+                    "type" => "int" ),
+
     )
 
 );
