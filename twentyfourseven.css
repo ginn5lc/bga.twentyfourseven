@@ -50,7 +50,16 @@
 #board {
     width: 740px;
     height: 958px;
+    position: relative;
     background-image: url('img/board.jpg');
+}
+
+#tf7_player {
+    background-color: rgba(255, 255, 255, .25);
+    margin-top: 10px;
+    padding: 10px 0px;
+    width: 740px;
+    position: relative;
 }
 
 .space {
@@ -84,8 +93,9 @@
 }
 
 .playableSpace {
-    background-color: sienna;
-    opacity: 0.5;
-    filter:alpha(opacity=50); /* For IE8 and earlier */  
-    cursor: pointer;  
+    background-color: rgba(160,82,45,.35);
+    cursor: pointer;
+    border: 5px solid sienna;
+    width: 65px;
+    height: 95px;
 }

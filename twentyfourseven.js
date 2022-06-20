@@ -63,8 +63,9 @@ function (dojo, declare) {
             
             // Player hand
             this.playerHand = new ebg.stock();
-            this.playerHand.create(this, $('myhand'), this.tilewidth, this.tileheight);
+            this.playerHand.create(this, $('tf7_player_hand'), this.tilewidth, this.tileheight);
             this.playerHand.image_items_per_row = 5;
+            this.playerHand.centerItems = true;
             this.playerHand.extraClasses = 'playerTile';
             this.playerHand.setSelectionMode( 1 );
 

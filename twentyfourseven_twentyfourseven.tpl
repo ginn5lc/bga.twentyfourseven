@@ -24,16 +24,27 @@
     
     Please REMOVE this comment before publishing your game on BGA
 -->
+<div id="tf7_table">
 
-<div id="board">
-    <!-- BEGIN space -->
-        <div id="space_{X}_{Y}" class="space" style="left: {LEFT}px; top: {TOP}px;"></div>
-    <!-- END space -->
-    <div id="pieces">
+    <div id="tf7_board">
+
+        <div id="board">
+            <!-- BEGIN space -->
+                <div id="space_{X}_{Y}" class="space" style="left: {LEFT}px; top: {TOP}px;"></div>
+            <!-- END space -->
+            <div id="pieces">
+            </div>
+        </div>
+
     </div>
-</div>
 
-<div id="myhand">
+    <div id="tf7_player">
+
+        <div id="tf7_player_hand">
+        </div>
+
+    </div>
+
 </div>
 
 <script type="text/javascript">
