@@ -2,7 +2,7 @@
  /**
   *------
   * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
-  * TwentyFourSeven implementation : © <Your name here> <Your email address here>
+  * TwentyFourSeven implementation : © Jim Ginn ginn5j@gmail.com
   * 
   * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
   * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -40,6 +40,18 @@ class TwentyFourSeven extends Table
         self::RUN => [ 1, -1 ],
         self::SET => [ 0 ]
     ];
+
+    private const COMBO_PROPS = [
+        "sum-of-7" => [ "description" => "Sum of 7", "minutes" => 20 ], 
+        "sum-of-24" => [ "description" => "Sum of 24", "minutes" => 40 ], 
+        "run-of-3" => [ "description" => "Run of 3", "minutes" => 30 ], 
+        "run-of-4" => [ "description" => "Run of 4", "minutes" => 40 ], 
+        "run-of-5" => [ "description" => "Run of 5", "minutes" => 50 ], 
+        "run-of-6" => [ "description" => "Run of 6", "minutes" => 60 ], 
+        "set-of-3" => [ "description" => "Set of 3", "minutes" => 50 ], 
+        "set-of-4" => [ "description" => "Set of 4", "minutes" => 60 ], 
+        "bonus" => [ "description" => "Bonus", "minutes" => 60 ] 
+    ]
 
 	function __construct( )
 	{
