@@ -23,15 +23,15 @@ require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 class TwentyFourSeven extends Table
 {
 
-    private const SUM_OF_7 = "Sum of 7";
-    private const SUM_OF_24 = "Sum of 4";
-    private const RUN_OF_3 = "Run of 3";
-    private const RUN_OF_4 = "Run of 4";
-    private const RUN_OF_5 = "Run of 5";
-    private const RUN_OF_6 = "Run of 6";
-    private const SET_OF_3 = "Set of 3";
-    private const SET_OF_4 = "Set of 4";
-    private const BONUS = "Bonus";
+    private const SUM_OF_7  = "sum-of-7";
+    private const SUM_OF_24 = "sum-of-24";
+    private const RUN_OF_3  = "run-of-3";
+    private const RUN_OF_4  = "run-of-4";
+    private const RUN_OF_5  = "run-of-5";
+    private const RUN_OF_6  = "run-of-6";
+    private const SET_OF_3  = "set-of-3";
+    private const SET_OF_4  = "set-of-4";
+    private const BONUS     = "bonus";
 
     private const RUN = "Run";
     private const SET = "Set";
@@ -41,16 +41,29 @@ class TwentyFourSeven extends Table
         self::SET => [ 0 ]
     ];
 
+    private const RUN_SET_TYPES = [
+        self::RUN => [
+            3 => self::RUN_OF_3,
+            4 => self::RUN_OF_4,
+            5 => self::RUN_OF_5,
+            6 => self::RUN_OF_6
+        ],
+        self::SET => [
+            3 => self::SET_OF_3,
+            4 => self::SET_OF_4
+        ]
+    ];
+
     private const COMBO_PROPS = [
-        "sum-of-7" => [ "description" => "Sum of 7", "minutes" => 20 ], 
-        "sum-of-24" => [ "description" => "Sum of 24", "minutes" => 40 ], 
-        "run-of-3" => [ "description" => "Run of 3", "minutes" => 30 ], 
-        "run-of-4" => [ "description" => "Run of 4", "minutes" => 40 ], 
-        "run-of-5" => [ "description" => "Run of 5", "minutes" => 50 ], 
-        "run-of-6" => [ "description" => "Run of 6", "minutes" => 60 ], 
-        "set-of-3" => [ "description" => "Set of 3", "minutes" => 50 ], 
-        "set-of-4" => [ "description" => "Set of 4", "minutes" => 60 ], 
-        "bonus" => [ "description" => "Bonus", "minutes" => 60 ] 
+        self::SUM_OF_7  => [ "description" => "Sum of 7",  "minutes" => 20 ], 
+        self::SUM_OF_24 => [ "description" => "Sum of 24", "minutes" => 40 ], 
+        self::RUN_OF_3  => [ "description" => "Run of 3",  "minutes" => 30 ], 
+        self::RUN_OF_4  => [ "description" => "Run of 4",  "minutes" => 40 ], 
+        self::RUN_OF_5  => [ "description" => "Run of 5",  "minutes" => 50 ], 
+        self::RUN_OF_6  => [ "description" => "Run of 6",  "minutes" => 60 ], 
+        self::SET_OF_3  => [ "description" => "Set of 3",  "minutes" => 50 ], 
+        self::SET_OF_4  => [ "description" => "Set of 4",  "minutes" => 60 ], 
+        self::BONUS     => [ "description" => "Bonus",     "minutes" => 60 ] 
     ];
 
 	function __construct( )
@@ -514,6 +527,92 @@ class TwentyFourSeven extends Table
     }
 
     /*
+        Find the combos at (x,y)
+    */
+    function findCombos( $x, $y )
+    {
+        $combos = array();
+
+        $lines = self::getLinesAtSpace( $x, $y );
+        foreach( $lines as $line )
+        {
+            $length = count( $line );
+            // Only score lines with 2 or more spaces
+            if( $length > 1) {
+                // Sum of combos
+                $sum = 0;
+                foreach( $line as $space )
+                {
+                    $sum += $space['value'];
+                }
+                unset( $space );
+    
+                if( $sum == 7 ) // Sum of 7 Combo
+                {
+                    $combo = $line;
+                    $combos[ self::SUM_OF_7 ][] = $combo;
+                    unset( $combo );
+                }
+                if( $sum == 24 ) // Sum of 24 Combo
+                {
+                    $combo = $line;
+                    $combos[ self::SUM_OF_24 ][] = $combo;
+                    unset( $combo );
+                }
+                if( $sum == 24 && $length == 7 ) 
+                {
+                    $combo = $line;
+                    $combos[ self::BONUS ][] = $combo;
+                    unset( $combo );
+                }
+
+                // Get the runs and sets for this line that include (x,y)
+                $runs_and_sets = self::runsAndSets( $x, $y, $line );
+
+                // Add any runs and sets to the combos
+                foreach( $runs_and_sets as $type => $items )
+                {
+                    foreach( $items as $item )
+                    {
+                        $combo = $item;
+                        $combos[ $type ][] = $combo;
+                        unset( $combo );
+                    }
+                    unset( $item );
+                }
+                unset( $items );
+                unset( $type );
+            }
+
+        }
+        unset( $line );
+
+        /*
+            24/7 Bonus Combos
+
+            The bonus combos are each sum of 24 plus each sum of 7 that were 
+            found. So 1 24 and 1 7 would be 1 bonus; 2 24s and 1 7 would be 
+            2 bonus combos; 2 24s and 2 7s would be 4 bonus combos, etc.
+        */
+        $combo7s = array_key_exists( self::SUM_OF_7, $combos ) ? $combos[ self::SUM_OF_7 ] : array();
+        $combo24s = array_key_exists( self::SUM_OF_24, $combos ) ? $combos[ self::SUM_OF_24 ] : array();
+        foreach( $combo7s as $combo7 )
+        {
+            foreach( $combo24s as $combo24 )
+            {
+                $combo = $combo24;
+                array_push( $combo, ...$combo7 );
+                $combos[ self::BONUS ][] = $combo;
+                unset( $combo );
+            }
+            unset( $combo24 );
+        }
+        unset( $combo7 );
+
+        return $combos;
+    }
+
+    /*
         Block any playable space with a time out stone if playing a tile with 
         the value of 1 would result in an invalid line (sum > 24).
     */
@@ -545,10 +644,7 @@ class TwentyFourSeven extends Table
 
         $possible = array(); // Empty array to accumulate the next possible run or set
         $has_played_space = false;
-        $results = [
-            self::RUN => array(),
-            self::SET => array()
-        ];
+        $combos = array();
 
         foreach( self::RUN_SET_DIRECTIONS as $type => $directions )
         {
@@ -571,7 +667,8 @@ class TwentyFourSeven extends Table
                             start a new possible to accumulate the current 
                             space.
                         */
-                        if( count( $possible ) > 2 && $has_played_space ) 
+                        $length = count( $possible );
+                        if( $length > 2 && $has_played_space ) 
                         {
                             /*
                                 The possible is the correct length for a run or 
@@ -579,17 +676,13 @@ class TwentyFourSeven extends Table
                                 where the tile was played (x, y). Copy the 
                                 possible to the results.
                             */
-                            $combo = array();
-                            foreach( $possible as $p_space )
-                            {
-                                $combo[] = $p_space;
-                            }
-                            unset( $p_space );
-
-                            // Add the combo to the type in the results
-                            $results[$type][] = $combo;
+                            $combo_type = self::RUN_SET_TYPES[ $type ][ $length ];
+                            $combo = $possible;
+                            $combos[ $combo_type ][] = $combo;
                             unset( $combo );
+                            unset( $combo_type );
                         }
+                        unset( $length );
 
                         /*
                             The possible was either copied to the result or 
@@ -621,7 +714,8 @@ class TwentyFourSeven extends Table
                     direction. Check the possible array to see whether it 
                     should be added to results.
                 */
-                if( count( $possible ) > 2 && $has_played_space ) 
+                $length = count( $possible );
+                if( $length > 2 && $has_played_space ) 
                 {
                     /*
                         The possible is the correct length for a run or 
@@ -629,17 +723,13 @@ class TwentyFourSeven extends Table
                         where the tile was played (x, y). Copy the 
                         possible to the results.
                     */
-                    $combo = array();
-                    foreach( $possible as $p_space )
-                    {
-                        $combo[] = $p_space;
-                    }
-                    unset( $p_space );
-
-                    // Add the combo to the type in the results
-                    $results[$type][] = $combo;
+                    $combo_type = self::RUN_SET_TYPES[ $type ][ $length ];
+                    $combo = $possible;
+                    $combos[ $combo_type ][] = $combo;
                     unset( $combo );
+                    unset( $combo_type );
                 }
+                unset( $length );
 
                 /*
                     Will start a new type and direction iteration if any are 
@@ -654,7 +744,7 @@ class TwentyFourSeven extends Table
         }
         unset( $directions );
 
-        return $results;
+        return $combos;
     }
 
     /*
@@ -662,8 +752,6 @@ class TwentyFourSeven extends Table
     */
     function scoreSpace( $x, $y )
     {
-        $lines = self::getLinesAtSpace( $x, $y );
-
         /*
             Tally
             0 - Sum of 7
@@ -681,73 +769,28 @@ class TwentyFourSeven extends Table
         {
             $tally[$i] = 0;
         }
-
-        foreach( $lines as $line )
-        {
-            $length = count( $line );
-            // Only score lines with 2 or more spaces
-            if( $length > 1) {
-                // Sum of combos
-                $sum = 0;
-                foreach( $line as $space )
-                {
-                    $sum += $space['value'];
-                }
-                unset( $space );
     
-                if( $sum == 7 ) $tally[0]++; // Sum of 7
-                if( $sum == 24 ) $tally[1]++; // Sum of 24
-                if( $sum == 24 && $length == 7 ) $tally[2]++; // 24/7 Bonus - Sum of 24 by 7 tiles
-
-                // Get the runs and sets for this line that include (x,y)
-                $runs_and_sets = self::runsAndSets( $x, $y, $line );
-
-                // Tally the runs and sets
-                foreach( $runs_and_sets as $type => $combos )
-                {
-                    foreach( $combos as $combo )
-                    {
-                        $length = count( $combo );
-
-                        switch( $type )
-                        {
-                            case self::RUN :
-                                {
-                                    switch( $length )
-                                    {
-                                        case 3 : $tally[3]++; break;
-                                        case 4 : $tally[4]++; break;
-                                        case 5 : $tally[5]++; break;
-                                        case 6 : $tally[6]++; break;
-                                    }
-                                    break;
-                                }
-                            case self::SET :
-                                {
-                                    switch( $length )
-                                    {
-                                        case 3 : $tally[7]++; break;
-                                        case 4 : $tally[8]++; break;
-                                    }
-                                    break;
-                                }
-                        }
-                    }
-                    unset( $combo );
-                }
-                unset( $combos );
-            }
-
-        }
-        unset( $line );
-
         /*
-            24/7 Bonus Tally
-
-            The bouns tally already has any sum of 24 by 7 tiles tallied. Add 
-            to this any regular 24/7 bonus (sum of 7 tally * sum of 24 tally).
+            Get the combos at (x,y) and tally each combo
         */
-        $tally[2] += ($tally[0] * $tally[1]);
+        $combos = self::findCombos( $x, $y );
+        foreach( $combos as $type => $items )
+        {
+            switch( $type )
+            {
+                case self::SUM_OF_7 : $tally[ 0 ] += count( $items ); break;
+                case self::SUM_OF_24 : $tally[ 1 ] += count( $items ); break;
+                case self::RUN_OF_3 : $tally[ 3 ] += count( $items ); break;
+                case self::RUN_OF_4 : $tally[ 4 ] += count( $items ); break;
+                case self::RUN_OF_5 : $tally[ 5 ] += count( $items ); break;
+                case self::RUN_OF_6 : $tally[ 6 ] += count( $items ); break;
+                case self::SET_OF_3 : $tally[ 7 ] += count( $items ); break;
+                case self::SET_OF_4 : $tally[ 8 ] += count( $items ); break;
+                case self::BONUS : $tally[ 2 ] += count( $items ); break;
+            }
+        }
+        unset( $type );
+        unset( $items );
 
         /*
             Double Time
@@ -784,6 +827,7 @@ class TwentyFourSeven extends Table
         $score = array();
         $score['tally'] = $tally;
         $score['minutes'] = $minutes;
+        $score["combos"] = $combos;
 
         return $score;
     }
