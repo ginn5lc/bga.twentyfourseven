@@ -8,7 +8,7 @@
   * See http://en.boardgamearena.com/#!doc/Studio for more information.
   * -----
   * 
-  * twentyfourseven.game.php
+  * lcgtwentyfourseven.game.php
   *
   * This is the main file for your game logic.
   *
@@ -80,7 +80,7 @@ class TwentyFourSeven extends Table
     protected function getGameName( )
     {
 		// Used for translations and stuff. Please do not modify.
-        return "twentyfourseven";
+        return "lcgtwentyfourseven";
     }	
 
     /*
@@ -804,7 +804,7 @@ class TwentyFourSeven extends Table
 
     /*
         Each time a player is doing some game action, one of the methods below is called.
-        (note: each method below must match an input method in twentyfourseven.action.php)
+        (note: each method below must match an input method in lcgtwentyfourseven.action.php)
     */
 
     /*

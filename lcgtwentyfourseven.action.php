@@ -8,7 +8,7 @@
  * See http://en.doc.boardgamearena.com/Studio for more information.
  * -----
  * 
- * twentyfourseven.action.php
+ * lcgtwentyfourseven.action.php
  *
  * TwentyFourSeven main action entry point
  *
@@ -17,13 +17,13 @@
  * user interface logic (javascript).
  *       
  * If you define a method "myAction" here, then you can call it from your javascript code with:
- * this.ajaxcall( "/twentyfourseven/twentyfourseven/myAction.html", ...)
+ * this.ajaxcall( "/lcgtwentyfourseven/lcgtwentyfourseven/myAction.html", ...)
  *
  */
   
 
 
-  class action_twentyfourseven extends APP_GameAction { 
+  class action_lcgtwentyfourseven extends APP_GameAction { 
     // Constructor: please do not modify
     public function __default()
     {
@@ -31,7 +31,7 @@
         $this->view = "common_notifwindow";
         $this->viewArgs['table'] = self::getArg( "table", AT_posint, true );
       } else {
-        $this->view = "twentyfourseven_twentyfourseven";
+        $this->view = "lcgtwentyfourseven_lcgtwentyfourseven";
         self::trace( "Complete reinitialization of board game" );
       }
     } 

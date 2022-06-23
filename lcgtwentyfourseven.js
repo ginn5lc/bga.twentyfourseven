@@ -7,7 +7,7 @@
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
  * -----
  *
- * twentyfourseven.js
+ * lcgtwentyfourseven.js
  *
  * TwentyFourSeven user interface script
  * 
@@ -22,9 +22,9 @@ define([
     "ebg/stock"
 ],
 function (dojo, declare) {
-    return declare("bgagame.twentyfourseven", ebg.core.gamegui, {
+    return declare("bgagame.lcgtwentyfourseven", ebg.core.gamegui, {
         constructor: function(){
-            console.log('twentyfourseven constructor');
+            console.log('lcgtwentyfourseven constructor');
               
             // Here, you can init the global variables of your user interface
             // Example:
@@ -298,7 +298,7 @@ function (dojo, declare) {
                         console.log('Tile type: ' + tiles[0].type + ', id: ' + tiles[0].id + ' played!');
 
                         // Exactly 1 tile selected, tell the server to process the played tile
-                        game.ajaxcall( "/twentyfourseven/twentyfourseven/playTile.html", {
+                        game.ajaxcall( "/lcgtwentyfourseven/lcgtwentyfourseven/playTile.html", {
                             lock:true,
                             x:x,
                             y:y,
@@ -323,7 +323,7 @@ function (dojo, declare) {
             In this method, you associate each of your game notifications with your local method to handle it.
             
             Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" calls in
-                  your twentyfourseven.game.php file.
+                  your lcgtwentyfourseven.game.php file.
         
         */
         setupNotifications: function()

@@ -7,7 +7,7 @@
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
  * -----
  *
- * twentyfourseven.css
+ * lcgtwentyfourseven.css
  *
  * TwentyFourSeven stylesheet
  *
@@ -17,8 +17,8 @@
     This is the CSS stylesheet of your game User Interface.
     
     Styles defined on this file will be applied to the HTML elements you define in your
-    HTML template (twentyfourseven_twentyfourseven.tpl), and to HTML elements you create dynamically
-    (in twentyfourseven.js).
+    HTML template (lcgtwentyfourseven_lcgtwentyfourseven.tpl), and to HTML elements you create dynamically
+    (in lcgtwentyfourseven.js).
     
     Usually, you are using CSS to:
     
