@@ -51,7 +51,7 @@ class TwentyFourSeven extends Table
         "set-of-3" => [ "description" => "Set of 3", "minutes" => 50 ], 
         "set-of-4" => [ "description" => "Set of 4", "minutes" => 60 ], 
         "bonus" => [ "description" => "Bonus", "minutes" => 60 ] 
-    ]
+    ];
 
 	function __construct( )
 	{
