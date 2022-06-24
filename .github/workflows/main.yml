@@ -7,7 +7,7 @@ on:
   pull_request:
     types:
       - closed
-    branches: 
+    branches:
       - "test"
       - "main"
 
@@ -16,26 +16,26 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-      
+
   if_merged_test:
     if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'lcgtwentyfourseven' && github.event.pull_request.base.ref == 'test'
     runs-on: ubuntu-latest
     steps:
     - run: |
-        rename 's/^lcgtwentyfourseven_lcgtwentyfourseven/testtwentyfourseven_testtwentyfourseven/' lcgtwentyfourseven_lcgtwentyfourseven.*
-        rename 's/^lcgtwentyfourseven/testtwentyfourseven/' lcgtwentyfourseven.*
+        git-mv lcgtwentyfourseven_lcgtwentyfourseven.* testtwentyfourseven_testtwentyfourseven.*
+        git-mv lcgtwentyfourseven.* testtwentyfourseven.*
         grep -rl 'lcgtwentyfourseven' / | xargs sed -i 's/lcgtwentyfourseven/testtwentyfourseven/g'
 
-  if_merged_main:    
+  if_merged_main:
     if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'lcgtwentyfourseven' && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
     steps:
     - run: |
-        rename 's/^lcgtwentyfourseven_lcgtwentyfourseven/twentyfourseven_twentyfourseven/' lcgtwentyfourseven_lcgtwentyfourseven.*
-        rename 's/^lcgtwentyfourseven/twentyfourseven/' lcgtwentyfourseven.*
+        git-mv lcgtwentyfourseven_lcgtwentyfourseven.* twentyfourseven_twentyfourseven.*
+        git-mv lcgtwentyfourseven.* twentyfourseven.*
         grep -rl 'lcgtwentyfourseven' / | xargs sed -i 's/lcgtwentyfourseven/twentyfourseven/g'
