@@ -10,7 +10,7 @@
  * twentyfourseven.js
  *
  * TwentyFourSeven user interface script
- * 
+ *
  * In this file, you are describing the logic of your user interface, in Javascript language.
  *
  */
@@ -25,42 +25,42 @@ function (dojo, declare) {
     return declare("bgagame.twentyfourseven", ebg.core.gamegui, {
         constructor: function(){
             console.log('twentyfourseven constructor');
-              
+
             // Here, you can init the global variables of your user interface
             // Example:
             // this.myGlobalValue = 0;
             this.tilewidth = 75;
             this.tileheight = 105;
         },
-        
+
         /*
             setup:
-            
+
             This method must set up the game user interface according to current game situation specified
             in parameters.
-            
+
             The method is called each time the game interface is displayed to a player, ie:
             _ when the game starts
             _ when a player refreshes the game page (F5)
-            
+
             "gamedatas" argument contains all datas retrieved by your "getAllDatas" PHP method.
         */
-        
+
         setup: function( gamedatas )
         {
             console.log( "Starting game setup" );
 
             //TODO: REMOVE
             console.log( gamedatas );
-            
+
             // Setting up player boards
             for( var player_id in gamedatas.players )
             {
                 var player = gamedatas.players[player_id];
-                         
+
                 // TODO: Setting up players boards if needed
             }
-            
+
             // Player hand
             this.playerHand = new ebg.stock();
             this.playerHand.create(this, $('tf7_player_hand'), this.tilewidth, this.tileheight);
@@ -76,7 +76,7 @@ function (dojo, declare) {
             }
 
             // Update the player's hand
-            for ( const i in gamedatas.hand ) 
+            for ( const i in gamedatas.hand )
             {
                 const tile = gamedatas.hand[ i ];
                 this.playerHand.addToStockWithId(tile.type_arg, tile.id);
@@ -92,9 +92,9 @@ function (dojo, declare) {
 
             // Listen for click events on the board
             /*
-                'this' will not be the 24/7 JS instance when onPlayTile is 
-                called so it needs to be captured when the listener is 
-                registered and passed to the function so it has access to 
+                'this' will not be the 24/7 JS instance when onPlayTile is
+                called so it needs to be captured when the listener is
+                registered and passed to the function so it has access to
                 other properties and functions during it's execution.
             */
             var self = this;
@@ -105,11 +105,11 @@ function (dojo, declare) {
 
             console.log( "Ending game setup" );
         },
-       
+
 
         ///////////////////////////////////////////////////
         //// Game & client states
-        
+
         // onEnteringState: this method is called each time we are entering into a new game state.
         //                  You can use this method to perform some user interface changes at this moment.
         //
@@ -119,24 +119,24 @@ function (dojo, declare) {
             //TODO: REMOVE
             console.log( args );
             //TODO: REMOVE
-            
+
             switch( stateName )
             {
                 case 'playerTurn':
                     this.onEnterPlayerTurn( args );
                     break;
-            
+
             /* Example:
-            
+
             case 'myGameState':
-            
+
                 // Show some HTML block at this game state
                 dojo.style( 'my_html_block_id', 'display', 'block' );
-                
+
                 break;
            */
-           
-           
+
+
             case 'dummmy':
                 break;
             }
@@ -148,24 +148,24 @@ function (dojo, declare) {
         onLeavingState: function( stateName )
         {
             console.log( 'Leaving state: '+stateName );
-            
+
             switch( stateName )
             {
             /* Example:
-            
+
             case 'myGameState':
-            
+
                 // Hide the HTML block we are displaying only during this game state
                 dojo.style( 'my_html_block_id', 'display', 'none' );
-                
+
                 break;
            */
-           
-           
+
+
             case 'dummmy':
                 break;
-            }               
-        }, 
+            }
+        },
 
         onEnterPlayerTurn: function( args )
         {
@@ -174,30 +174,30 @@ function (dojo, declare) {
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
         //                        action status bar (ie: the HTML links in the status bar).
-        //        
+        //
         onUpdateActionButtons: function( stateName, args )
         {
             console.log( 'onUpdateActionButtons: '+stateName );
-                      
+
             if( this.isCurrentPlayerActive() )
-            {            
+            {
                 switch( stateName )
                 {
-/*               
+/*
                  Example:
- 
+
                  case 'myGameState':
-                    
+
                     // Add 3 action buttons in the action status bar:
-                    
-                    this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
-                    this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
-                    this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
+
+                    this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' );
+                    this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' );
+                    this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' );
                     break;
 */
                 }
             }
-        },        
+        },
 
         ///////////////////////////////////////////////////
         //// Utility methods
@@ -209,7 +209,7 @@ function (dojo, declare) {
                     x_y: x+'_'+y,
                     value: value
                 } ) , 'pieces' );
-                
+
                 if (player !== undefined) {
                     this.placeOnObject( 'tile_'+x+'_'+y, 'overall_player_board_'+player );
                 } else {
@@ -220,7 +220,7 @@ function (dojo, declare) {
                 dojo.place( this.format_block( 'jstpl_stone', {
                     x_y: x+'_'+y
                 } ) , 'pieces' );
-                
+
                 this.placeOnObject( 'stone_'+x+'_'+y, 'board' );
                 this.slideToObject( 'stone_'+x+'_'+y, 'space_'+x+'_'+y ).play();
             }
@@ -255,18 +255,18 @@ function (dojo, declare) {
 
         ///////////////////////////////////////////////////
         //// Player's action
-        
+
         /*
-        
-            Here, you are defining methods to handle player's action (ex: results of mouse click on 
+
+            Here, you are defining methods to handle player's action (ex: results of mouse click on
             game objects).
-            
+
             Most of the time, these methods:
             _ check the action is possible at this game state.
             _ make a call to the game server
-        
+
         */
-        
+
         /*
             Handle playing a tile (clicking a playable space).
 
@@ -309,42 +309,44 @@ function (dojo, declare) {
                     {
                         console.log('Wrong number of tiles selected - ' + tiles.length + '.');
                     }
-                }            
+                }
             }
 
-        },        
-            
+        },
+
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
 
         /*
             setupNotifications:
-            
+
             In this method, you associate each of your game notifications with your local method to handle it.
-            
+
             Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" calls in
                   your twentyfourseven.game.php file.
-        
+
         */
         setupNotifications: function()
         {
             console.log( 'notifications subscriptions setup' );
-            
+
             dojo.subscribe( 'playTile', this, "notif_playTile" );
             this.notifqueue.setSynchronous( 'playTile', 500 );
             dojo.subscribe( 'newScores', this, "notif_newScores" );
             this.notifqueue.setSynchronous( 'newScores', 500 );
             dojo.subscribe( 'handChange', this, "notif_handChange" );
             this.notifqueue.setSynchronous( 'handChange', 500 );
-        },  
-        
+            dojo.subscribe( 'cantPlay', this, "notif_cantPlay" );
+            this.notifqueue.setSynchronous( 'cantPlay', 500 )
+        },
+
         /*
          * Handle the play tile notification.
          */
         notif_playTile: function( notif )
         {
             // Clear any playable spaces after a tile has been played
-            dojo.query( '.playableSpace' ).removeClass( 'playableSpace' ); 
+            dojo.query( '.playableSpace' ).removeClass( 'playableSpace' );
 
             // Add the played tile to the board
             this.addPieceOnBoard( notif.args.x, notif.args.y, notif.args.value, notif.args.player_id );
@@ -369,7 +371,7 @@ function (dojo, declare) {
                 this.scoreCtrl[ player_id ].toValue( newScore );
             }
         },
-        
+
         /*
          * Handle the hand change notification.
          */
@@ -377,6 +379,14 @@ function (dojo, declare) {
         {
             this.updatePlayerHand( notif.args.playTile, notif.args.drawTile );
         },
-        
-   });             
+
+        /*
+         * Handle the cant play notification.
+         */
+        notif_cantPlay: function( notif )
+        {
+            console.log(notif.args);
+        }
+
+   });
 });
