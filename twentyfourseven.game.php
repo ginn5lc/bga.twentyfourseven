@@ -235,6 +235,43 @@ class TwentyFourSeven extends Table
         // Playable spaces on the board
         $result['spaces'] = self::getPlayableSpaces();
 
+        // Tallies for both players stats
+        $result['tallies'] = self::getPlayersTally();
+
+        return $result;
+    }
+
+    /*
+        getPlayersTally:
+
+        Gather all the players stats.
+        Place the stats data into an array of arrays keyed first by player id and then stat.
+
+        The method is called:
+        - in the getAllDatas function
+        - in the newScores notif
+    */
+    protected function getPlayersTally()
+    {
+        $result = array();
+        $stats = array('turns_number', 'tally_sum_of_7', 'tally_sum_of_24', 'tally_run_of_3', 'tally_run_of_4', 'tally_run_of_5', 'tally_run_of_6', 'tally_set_of_3', 'tally_set_of_4', 'tally_bonus');
+        $player_stats = array();
+        // Get player ids
+        // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
+        $sql = "SELECT player_id id FROM player ";
+        $players = self::getCollectionFromDb( $sql );
+
+        foreach( $players as $player_id => $player )
+        {
+            foreach ( $stats as $stat )
+            {
+                $player_stats[$stat] = self::getStat( $stat, $player_id );
+            }
+            $result[$player_id] = $player_stats;
+        }
+        unset( $player_id );
+        unset( $stat );
+
         return $result;
     }
 
@@ -965,8 +1002,10 @@ class TwentyFourSeven extends Table
              * New scores notification
              */
             $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
+            $tallies = self::getPlayersTally();
             self::notifyAllPlayers( "newScores", "", array(
-                "scores" => $newScores
+                "scores" => $newScores,
+                "tallies" => $tallies
             ) );
 
             /*
