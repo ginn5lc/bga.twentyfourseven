@@ -20,10 +20,6 @@ List of ideas to implement prior to alpha release.
 - Standardize all the ids, classes, etc so there is no concern about namespace collisions (i.e., prefix everything with tf7_)
 
 ### PHP
-- Return overall tally info to client
-    - Create get tally function. Return array of arrays of the overall tally. First level keyed by player id; second level keyed by statistic (sum of 7, 24, run of 3, etc)
-    - Get and return overall tally in get all datas function
-    - Get and return overall tally in the new scores notification
 - Standardize all the ids, classes, etc so there is no concern about namespace collisions (i.e., prefix everything with tf7_)
 - Implement zombie turn
 
