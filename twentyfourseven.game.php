@@ -66,6 +66,19 @@ class TwentyFourSeven extends Table
         self::BONUS     => [ "description" => "Bonus",     "minutes" => 60 ]
     ];
 
+    private const STAT_KEYS = [
+        'turns_number',
+        'tally_sum_of_7',
+        'tally_sum_of_24',
+        'tally_run_of_3',
+        'tally_run_of_4',
+        'tally_run_of_5',
+        'tally_run_of_6',
+        'tally_set_of_3',
+        'tally_set_of_4',
+        'tally_bonus'
+    ];
+
 	function __construct( )
 	{
         // Your global variables labels:
@@ -254,16 +267,14 @@ class TwentyFourSeven extends Table
     protected function getPlayersTally()
     {
         $result = array();
-        $stats = array('turns_number', 'tally_sum_of_7', 'tally_sum_of_24', 'tally_run_of_3', 'tally_run_of_4', 'tally_run_of_5', 'tally_run_of_6', 'tally_set_of_3', 'tally_set_of_4', 'tally_bonus');
         $player_stats = array();
+        
         // Get player ids
-        // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id FROM player ";
-        $players = self::getCollectionFromDb( $sql );
+        $player_ids =  array_keys($this->loadPlayersBasicInfos());
 
-        foreach( $players as $player_id => $player )
+        foreach( $player_ids as $player_id)
         {
-            foreach ( $stats as $stat )
+            foreach ( self::STAT_KEYS as $stat )
             {
                 $player_stats[$stat] = self::getStat( $stat, $player_id );
             }
