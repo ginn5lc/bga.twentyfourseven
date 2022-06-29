@@ -368,6 +368,9 @@ function (dojo, declare) {
             for( const player_id in notif.args.scores )
             {
                 var newScore = notif.args.scores[ player_id ];
+                var newTally = notif.args.tallies[ player_id ];
+                console.log(player_id);
+                console.log(newTally);
                 this.scoreCtrl[ player_id ].toValue( newScore );
             }
         },
