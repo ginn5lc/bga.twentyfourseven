@@ -272,7 +272,7 @@ class TwentyFourSeven extends Table
         // Get player ids
         $player_ids =  array_keys($this->loadPlayersBasicInfos());
 
-        foreach( $player_ids as $player_id)
+        foreach( $player_ids as $player_id )
         {
             foreach ( self::STAT_KEYS as $stat )
             {
