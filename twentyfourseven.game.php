@@ -299,11 +299,11 @@ class TwentyFourSeven extends Table
     function getGameProgression()
     {
         /*
-            Playable spaces - Empty spaces adjacent to tiles on the board (value > 0)
+            Playables - Empty spaces adjacent to tiles on the board (value > 0)
             are playable. If none exist, the game is over and progression is 100.
         */
-        $playableSpaces = self::getPlayableSpaces();
-        if( count( $playableSpaces ) == 0 ) return 100;
+        $playables = self::getPlayableSpaces();
+        if( count( $playables ) == 0 ) return 100;
 
         /*
             Playable tiles - Tiles in players hands are playable when every line
@@ -342,40 +342,9 @@ class TwentyFourSeven extends Table
     */
     function canPlayValueAtSpace( $x, $y, $value )
     {
-        // Can't play if not on the board and not a tile
-        if( $x < 1 || $x > 7 || $y < 1 || $y > 7 || $value < 1 || $value > 10 ) return false;
-
-        $board_value = self::getUniqueValueFromDb( "SELECT board_value FROM board WHERE board_x = $x AND board_y = $y" );
-
-        // Can't play if the space has something in it
-        if( ! is_null( $board_value ) ) return false;
-
-        // Put the value on the board at (x,y)
-        self::DbQuery( "UPDATE board SET board_value = $value WHERE board_x = $x AND board_y = $y" );
-
-        // Get the lines at (x,y)
-        $lines = self::getLinesAtSpace( $x, $y );
-
-        // Sum each line
-        $largest_sum = 0;
-        foreach( $lines as $line )
-        {
-            $current_sum = 0;
-            foreach( $line as $space )
-            {
-                $current_sum += $space['value'];
-            }
-            unset( $space );
-
-            if ($current_sum > $largest_sum) $largest_sum = $current_sum;
-        }
-        unset( $line );
-
-        // Remove the value from the board at (x,y)
-        self::DbQuery( "UPDATE board SET board_value = NULL WHERE board_x = $x AND board_y = $y" );
-
-        // If any line sums > 24, can't play otherwise can play
-        return $largest_sum > 24 ? false : true;
+        // If the max sum is between 1 and 24, valid tile play.
+        $max = self::maxSumAtSpace( $x, $y, $value );
+        return $max < 1 || $max > 24 ? false : true;
     }
 
     /*
@@ -501,19 +470,35 @@ class TwentyFourSeven extends Table
     }
 
     /*
-     * Get the list of empty spaces adjacent to tiles
-     */
+        Get the playable spaces on the board and the max tile value that can 
+        be played.
+    */
     function getPlayableSpaces()
     {
-        return self::getObjectListFromDB( "SELECT E.board_x x, E.board_y y, E.board_value value
-                                            FROM board E
-                                            JOIN board A ON
-                                                E.board_value IS NULL AND
-                                                A.board_value IS NOT NULL AND A.board_value > 0 AND
-                                                A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND
-                                                A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1)
-                                            GROUP BY E.board_x, E.board_y, E.board_value
-                                            ORDER BY E.board_x, E.board_y " );
+        // Get the playable spaces: empty spaces adjacent to a tile (value > 0)
+        $playables = self::getObjectListFromDB( "SELECT E.board_x x, E.board_y y
+                                                FROM board E
+                                                JOIN board A ON
+                                                    E.board_value IS NULL AND
+                                                    A.board_value IS NOT NULL AND A.board_value > 0 AND
+                                                    A.board_x BETWEEN (E.board_x - 1) AND (E.board_x + 1) AND
+                                                    A.board_y BETWEEN (E.board_y - 1) AND (E.board_y + 1)
+                                                GROUP BY E.board_x, E.board_y, E.board_value
+                                                ORDER BY E.board_x, E.board_y " );
+        
+        // For each space, calculate the largest tile that can be played.
+        foreach( $playables as $i => ["x" => $x, "y" => $y] )
+        {
+            // Get the max sum if a 1 were played
+            $sum = self::maxSumAtSpace( $x, $y, 1 );
+            // Calculate the room left on the space (25 - sum)
+            $room = 25 - $sum;
+            // Max tile is 10 (room > 10) or room
+            $playables[ $i ][ "max" ] = ( $room > 10 ? 10 : $room );
+        }
+        unset( $i, $x, $y );
+
+        return $playables;
     }
 
     /*
@@ -559,17 +544,16 @@ class TwentyFourSeven extends Table
         // The smallest tile in hand is the first element of the array since it is sorted by card_type_arg.
         $smallest_tile_value = $tiles_in_hand[ 0 ][ "type_arg" ];
         // See if this tile can be played on the board
-        $playable_spaces = self::getPlayableSpaces();
-        foreach( $playable_spaces as ["x" => $x, "y" => $y] )
+        $playables = self::getPlayableSpaces();
+        foreach( $playables as ["x" => $x, "y" => $y, "max" => $max ] )
         {
-            if( self::canPlayValueAtSpace( $x, $y, $smallest_tile_value ) )
+            if( $smallest_tile_value <= $max )
             {
                 $playable_tile_exists = true;
                 break;
             }
         }
-        unset( $x );
-        unset( $y );
+        unset( $x, $y, $max );
 
         return $playable_tile_exists;
     }
@@ -668,19 +652,62 @@ class TwentyFourSeven extends Table
     {
         $time_out_spaces = array();
 
-        $playable_spaces = self::getPlayableSpaces();
-        foreach( $playable_spaces as ["x" => $x, "y" => $y] )
+        $playables = self::getPlayableSpaces();
+        foreach( $playables as ["x" => $x, "y" => $y, "max" => $max] )
         {
-            if( ! self::canPlayValueAtSpace( $x, $y, 1 ) )
+            if( $max < 1 )
             {
                 self::DbQuery( "UPDATE board SET board_value = 0 WHERE board_x = $x AND board_y = $y" );
                 $time_out_spaces[] = [ "x" => $x, "y" => $y, "value" => 0 ];
             }
         }
-        unset( $x );
-        unset( $y );
+        unset( $x, $y, $max );
 
         return $time_out_spaces;
+    }
+
+    /*
+        Find the max sum at (x,y) assuming tile is played. If the board 
+        position or the tile value is not valid, 0 is returned. If the board
+        position is filled (non-null), 0 is returned. Otherwise, the largest 
+        sum of the lines passing through (x,y) is returned.
+    */
+    function maxSumAtSpace( $x, $y, $value )
+    {
+        // Can't play if not on the board and not a tile
+        if( $x < 1 || $x > 7 || $y < 1 || $y > 7 || $value < 1 || $value > 10 ) return 0;
+
+        $board_value = self::getUniqueValueFromDb( "SELECT board_value FROM board WHERE board_x = $x AND board_y = $y" );
+
+        // Can't play if the space has something in it
+        if( ! is_null( $board_value ) ) return 0;
+
+        // Put the value on the board at (x,y)
+        self::DbQuery( "UPDATE board SET board_value = $value WHERE board_x = $x AND board_y = $y" );
+
+        // Get the lines at (x,y)
+        $lines = self::getLinesAtSpace( $x, $y );
+
+        // Sum each line
+        $largest_sum = 0;
+        foreach( $lines as $line )
+        {
+            $current_sum = 0;
+            foreach( $line as $space )
+            {
+                $current_sum += $space['value'];
+            }
+            unset( $space );
+
+            if ($current_sum > $largest_sum) $largest_sum = $current_sum;
+        }
+        unset( $line );
+
+        // Remove the value from the board at (x,y)
+        self::DbQuery( "UPDATE board SET board_value = NULL WHERE board_x = $x AND board_y = $y" );
+
+        // Return the largest sum
+        return $largest_sum;
     }
 
     /*
@@ -1060,11 +1087,11 @@ class TwentyFourSeven extends Table
         $player_id = self::activeNextPlayer();
 
         /*
-         * Playable spaces - Empty spaces adjacent to tiles on the board (value > 0)
+         * Playables - Empty spaces adjacent to tiles on the board (value > 0)
          * are playable. If none exist, the game is over.
          */
-        $playableSpaces = self::getPlayableSpaces();
-        if( count( $playableSpaces ) == 0 )
+        $playables = self::getPlayableSpaces();
+        if( count( $playables ) == 0 )
         {
             /*
              * The board has no playable spaces. Game over.
