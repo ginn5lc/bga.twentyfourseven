@@ -92,10 +92,45 @@
     background-image: url('img/stone.png');
 }
 
-.playableSpace {
+.playable_space {
     background-color: rgba(160,82,45,.35);
     cursor: pointer;
     border: 5px solid sienna;
     width: 65px;
     height: 95px;
+    text-align: center;
 }
+
+.playable {
+    color: green;
+}
+
+.not_playable {
+    color: red;
+}
+
+
+/* Prototyping for highlighting combos scored.
+
+.fadechange {
+    background-color: aliceblue;
+    height: 100%;
+    width: 100%;
+    opacity: 0.0;
+    animation: 1.5s ease 2 fading;
+   -webkit-animation: 1.5s ease 2 fading;
+}
+
+@keyframes fading {
+    0%   { opacity: 0.0; }
+    50%  { opacity: 0.75; }
+    100% { opacity: 0.0; }
+}
+
+@-webkit-keyframes fading {
+    0%   { opacity: 0.0; }
+    50%  { opacity: 0.75; }
+    100% { opacity: 0.0; }
+}
+
+*/

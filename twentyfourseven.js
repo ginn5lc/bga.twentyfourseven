@@ -31,6 +31,7 @@ function (dojo, declare) {
             // this.myGlobalValue = 0;
             this.tilewidth = 75;
             this.tileheight = 105;
+            this.playables = [];
         },
 
         /*
@@ -68,6 +69,7 @@ function (dojo, declare) {
             this.playerHand.centerItems = true;
             this.playerHand.extraClasses = 'playerTile';
             this.playerHand.setSelectionMode( 1 );
+            dojo.connect( this.playerHand, 'onChangeSelection', this, 'onTileSelectionChange' );
 
             // Create cards types:
             for (var value = 1; value <= 10; value++) {
@@ -169,7 +171,7 @@ function (dojo, declare) {
 
         onEnterPlayerTurn: function( args )
         {
-            this.updatePlayableSpaces( args.args.playableSpaces );
+            this.updatePlayables( args.args.playableSpaces );
         },
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
@@ -226,17 +228,74 @@ function (dojo, declare) {
             }
         },
 
-        updatePlayableSpaces: function( playableSpaces )
+        /*
+            Clear the playable spaces and the list of playables.
+        */
+        clearPlayables: function()
+        {
+            for( const space of document.querySelectorAll( ".playable_space" ) )
+            {
+                this.removeTooltip( space.id );
+            }
+            dojo.query( '.playable_space' ).removeClass( 'playable_space playable not_playable fa fa-2x fa-check-circle fa-times-circle' );
+            this.playables = [];
+        },
+
+        /*
+            Indicate whether the selected tile can be played on any of the 
+            playable spaces.
+        */
+        onTileSelectionChange: function( control_name, item_id )
         {
             if( this.isCurrentPlayerActive() )
             {
-                for( const space of playableSpaces )
+                // Get the selected tiles (should be 0 or 1)
+                var tiles = this.playerHand.getSelectedItems();
+            
+                if ( tiles.length == 1 )
+                {
+                    var tile = tiles[0];
+                    for( const playable of this.playables )
+                    {
+                        if( tile.type <= playable.max )
+                        {
+                            dojo.replaceClass( 'space_'+playable.x+'_'+playable.y, 'playable fa-check-circle', 'not_playable fa-times-circle' );
+                        }
+                        else
+                        {
+                            dojo.replaceClass( 'space_'+playable.x+'_'+playable.y, 'not_playable fa-times-circle', 'playable fa-check-circle' );
+                        }
+                    }
+                }
+                else
+                {
+                    this.playerHand.unselectAll();
+                    dojo.query( '.playable_space' ).removeClass( 'playable not_playable fa-check-circle fa-times-circle' );
+                }
+            }
+            else
+            {
+                this.playerHand.unselectAll();
+                this.clearPlayables();
+            }
+        },
+
+        /*
+            Update the list of playables and show the playable spaces on the 
+            board.
+        */
+        updatePlayables: function( playables )
+        {
+            this.playables = playables;
+
+            if( this.isCurrentPlayerActive() )
+            {
+                for( const playable of this.playables )
                 {
                     // x,y is a playable space
-                    dojo.addClass( 'space_'+space.x+'_'+space.y, 'playableSpace' );
+                    dojo.addClass( 'space_'+playable.x+'_'+playable.y, 'playable_space fa fa-2x' );
+                    this.addTooltip( 'space_'+playable.x+'_'+playable.y, '', _('Play a tile less than or equal to '+playable.max+' here.') );
                 }
-
-                this.addTooltipToClass( 'playableSpace', '', _('Play a tile here') );
             }
         },
 
@@ -279,7 +338,7 @@ function (dojo, declare) {
             event.stopPropagation();
             event.preventDefault();
 
-            if( event.target.classList.contains( 'playableSpace' ) )
+            if( event.target.classList.contains( 'playable' ) )
             {
                 // Get the clicked space X and Y
                 // Note: space id format is "space_X_Y"
@@ -345,8 +404,8 @@ function (dojo, declare) {
          */
         notif_playTile: function( notif )
         {
-            // Clear any playable spaces after a tile has been played
-            dojo.query( '.playableSpace' ).removeClass( 'playableSpace' );
+            // Clear the playables from the board
+            this.clearPlayables();
 
             // Add the played tile to the board
             this.addPieceOnBoard( notif.args.x, notif.args.y, notif.args.value, notif.args.player_id );
