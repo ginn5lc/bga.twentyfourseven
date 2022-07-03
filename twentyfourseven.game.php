@@ -79,6 +79,18 @@ class TwentyFourSeven extends Table
         'tally_bonus'
     ];
 
+    private const SCORE_TALLY_KEYS = [
+        self::SUM_OF_7,
+        self::SUM_OF_24,
+        self::BONUS,
+        self::RUN_OF_3,
+        self::RUN_OF_4,
+        self::RUN_OF_5,
+        self::RUN_OF_6,
+        self::SET_OF_3,
+        self::SET_OF_4
+    ];
+
 	function __construct( )
 	{
         // Your global variables labels:
@@ -1014,6 +1026,33 @@ class TwentyFourSeven extends Table
             self::incStat( $score[ "tally" ][ 2 ], 'tally_bonus', $player_id );
 
             /*
+             * Create a string of the combos the player scored if any
+             */
+            $scoring_combos = "";
+            if ($minutes > 0) {
+                $num_combos_scored = 0;
+                $scoring_combos = "(";
+                // at least one scorable combo was played
+                foreach ( $score[ "tally" ] as $ind => $tally )
+                {
+                    if ( $tally > 0 ) 
+                    {   $combo_scored = "";
+                        if ( $num_combos_scored > 0)
+                        {
+                            $combo_scored .= ", ";
+                        }
+                        $combo_description = self::COMBO_PROPS[ self::SCORE_TALLY_KEYS[ $ind ] ][ "description" ];
+                        $combo_scored .= $combo_description . " x " . $tally;
+                        $scoring_combos .= $combo_scored;
+                        $num_combos_scored += 1;
+                    }
+                }
+                unset( $ind );
+                unset( $tally );
+                $scoring_combos .= ")";
+            }
+
+            /*
              * Draw a tile and add it to the player's hand.
              */
             $drawTile = $this->tiles->pickCard( 'deck', $player_id );
@@ -1025,13 +1064,14 @@ class TwentyFourSeven extends Table
             /*
              * Played tile notification
              */
-            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on column ${x} and row ${y} and scored ${minutes} minutes' ), array(
+            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on column ${x} and row ${y} and scored ${minutes} minutes ${scoring_combos}' ), array(
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
                 'minutes' => $minutes,
                 'value' => $played_tile_value,
                 'x' => $x,
                 'y' => $y,
+                'scoring_combos' => $scoring_combos,
                 'score' => $score,
                 'time_out_spaces' => $time_out_spaces
             ) );
