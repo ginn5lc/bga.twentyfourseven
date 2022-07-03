@@ -2,13 +2,13 @@
  /**
   *------
   * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
-  * TwentyFourSeven implementation : © Jim Ginn ginn5j@gmail.com
+  * LcgTwentyFourSeven implementation : © Jim Ginn ginn5j@gmail.com
   *
   * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
   * See http://en.boardgamearena.com/#!doc/Studio for more information.
   * -----
   *
-  * twentyfourseven.game.php
+  * lcgtwentyfourseven.game.php
   *
   * This is the main file for your game logic.
   *
@@ -20,7 +20,7 @@
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
 
-class TwentyFourSeven extends Table
+class LcgTwentyFourSeven extends Table
 {
 
     private const SUM_OF_7  = "sum-of-7";
@@ -79,6 +79,18 @@ class TwentyFourSeven extends Table
         'tally_bonus'
     ];
 
+    private const SCORE_TALLY_KEYS = [
+        self::SUM_OF_7,
+        self::SUM_OF_24,
+        self::BONUS,
+        self::RUN_OF_3,
+        self::RUN_OF_4,
+        self::RUN_OF_5,
+        self::RUN_OF_6,
+        self::SET_OF_3,
+        self::SET_OF_4
+    ];
+
 	function __construct( )
 	{
         // Your global variables labels:
@@ -106,7 +118,7 @@ class TwentyFourSeven extends Table
     protected function getGameName( )
     {
 		// Used for translations and stuff. Please do not modify.
-        return "twentyfourseven";
+        return "lcgtwentyfourseven";
     }
 
     /*
@@ -923,7 +935,7 @@ class TwentyFourSeven extends Table
 
     /*
         Each time a player is doing some game action, one of the methods below is called.
-        (note: each method below must match an input method in twentyfourseven.action.php)
+        (note: each method below must match an input method in lcgtwentyfourseven.action.php)
     */
 
     /*
@@ -1014,6 +1026,28 @@ class TwentyFourSeven extends Table
             self::incStat( $score[ "tally" ][ 2 ], 'tally_bonus', $player_id );
 
             /*
+             * Create a string of the combos the player scored if any
+             */
+            $scoring_combos = "";
+            if ($minutes > 0) {
+                $scoring_combos = "Scoring combos: ";
+                // at least one scorable combo was played
+                foreach ( $score[ "tally" ] as $ind => $tally )
+                {
+                    if ( $tally > 0 ) 
+                    {
+                        $combo_description = self::COMBO_PROPS[ self::SCORE_TALLY_KEYS[ $ind ] ][ "description" ];
+                        $combo_scored = $combo_description . " - ";
+                        $combo_scored .= $tally;
+                        $combo_scored .= " ";
+                        $scoring_combos .= $combo_scored;
+                    }
+                }
+                unset( $ind );
+                unset( $tally );
+            }
+
+            /*
              * Draw a tile and add it to the player's hand.
              */
             $drawTile = $this->tiles->pickCard( 'deck', $player_id );
@@ -1025,13 +1059,14 @@ class TwentyFourSeven extends Table
             /*
              * Played tile notification
              */
-            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on column ${x} and row ${y} and scored ${minutes} minutes' ), array(
+            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on column ${x} and row ${y} and scored ${minutes} minutes. ${scoring_combos}' ), array(
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
                 'minutes' => $minutes,
                 'value' => $played_tile_value,
                 'x' => $x,
                 'y' => $y,
+                'scoring_combos' => $scoring_combos,
                 'score' => $score,
                 'time_out_spaces' => $time_out_spaces
             ) );
