@@ -1030,21 +1030,26 @@ class LcgTwentyFourSeven extends Table
              */
             $scoring_combos = "";
             if ($minutes > 0) {
-                $scoring_combos = "Scoring combos: ";
+                $num_combos_scored = 0;
+                $scoring_combos = "(";
                 // at least one scorable combo was played
                 foreach ( $score[ "tally" ] as $ind => $tally )
                 {
                     if ( $tally > 0 ) 
-                    {
+                    {   $combo_scored = "";
+                        if ( $num_combos_scored > 0)
+                        {
+                            $combo_scored .= ", ";
+                        }
                         $combo_description = self::COMBO_PROPS[ self::SCORE_TALLY_KEYS[ $ind ] ][ "description" ];
-                        $combo_scored = $combo_description . " - ";
-                        $combo_scored .= $tally;
-                        $combo_scored .= " ";
+                        $combo_scored .= $combo_description . " x " . $tally;
                         $scoring_combos .= $combo_scored;
+                        $num_combos_scored += 1;
                     }
                 }
                 unset( $ind );
                 unset( $tally );
+                $scoring_combos .= ")";
             }
 
             /*
@@ -1059,7 +1064,7 @@ class LcgTwentyFourSeven extends Table
             /*
              * Played tile notification
              */
-            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on column ${x} and row ${y} and scored ${minutes} minutes. ${scoring_combos}' ), array(
+            self::notifyAllPlayers( "playTile", clienttranslate( '${player_name} played a ${value} on column ${x} and row ${y} and scored ${minutes} minutes ${scoring_combos}' ), array(
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
                 'minutes' => $minutes,
